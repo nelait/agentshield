@@ -1,0 +1,792 @@
+const express = require('express');
+const multer = require('multer');
+const XLSX = require('xlsx');
+const authService = require('./auth');
+const policyService = require('../policy/service');
+const workflowService = require('../workflow/service');
+const complianceService = require('../compliance/service');
+const costService = require('../cost/service');
+const auditService = require('../audit/service');
+const settingsService = require('../settings/service');
+const evaluationService = require('../evaluation/service');
+const { RegistryService } = require('../registry/service');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+const router = express.Router();
+
+// ============================================
+// AUTH ROUTES
+// ============================================
+router.post('/auth/login', async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        const result = await authService.login(email, password);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.post('/auth/refresh', async (req, res, next) => {
+    try {
+        const result = await authService.refreshToken(req.body.refreshToken);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.get('/auth/me', async (req, res) => {
+    res.json({ success: true, data: req.user });
+});
+
+router.post('/auth/users', requireRole('admin'), async (req, res, next) => {
+    try {
+        const user = await authService.createUser(req.body);
+        res.status(201).json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+router.get('/auth/users', requireRole('admin'), async (req, res, next) => {
+    try {
+        const users = await authService.listUsers();
+        res.json({ success: true, data: users });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// POLICY ROUTES
+// ============================================
+router.post('/policies', requireRole('editor'), async (req, res, next) => {
+    try {
+        const policy = await policyService.createPolicy(req.body, req.user?.id);
+        res.status(201).json({ success: true, data: policy });
+    } catch (err) { next(err); }
+});
+
+router.get('/policies', async (req, res, next) => {
+    try {
+        const policies = await policyService.listPolicies(req.query);
+        res.json({ success: true, data: policies });
+    } catch (err) { next(err); }
+});
+
+router.get('/policies/:id', async (req, res, next) => {
+    try {
+        const policy = await policyService.getPolicy(req.params.id);
+        res.json({ success: true, data: policy });
+    } catch (err) { next(err); }
+});
+
+router.put('/policies/:id', requireRole('editor'), async (req, res, next) => {
+    try {
+        const policy = await policyService.updatePolicy(req.params.id, req.body);
+        res.json({ success: true, data: policy });
+    } catch (err) { next(err); }
+});
+
+router.delete('/policies/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await policyService.deletePolicy(req.params.id);
+        res.json({ success: true, message: 'Policy deleted' });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// WORKFLOW ROUTES
+// ============================================
+router.post('/workflows', requireRole('editor'), async (req, res, next) => {
+    try {
+        const workflow = await workflowService.createWorkflow(req.body, req.user?.id);
+        res.status(201).json({ success: true, data: workflow });
+    } catch (err) { next(err); }
+});
+
+router.get('/workflows', async (req, res, next) => {
+    try {
+        const workflows = await workflowService.listWorkflows(req.query);
+        res.json({ success: true, data: workflows });
+    } catch (err) { next(err); }
+});
+
+router.get('/workflows/:idOrSlug', async (req, res, next) => {
+    try {
+        const workflow = await workflowService.getWorkflow(req.params.idOrSlug);
+        res.json({ success: true, data: workflow });
+    } catch (err) { next(err); }
+});
+
+router.put('/workflows/:idOrSlug', requireRole('editor'), async (req, res, next) => {
+    try {
+        const workflow = await workflowService.updateWorkflow(req.params.idOrSlug, req.body);
+        res.json({ success: true, data: workflow });
+    } catch (err) { next(err); }
+});
+
+router.patch('/workflows/:idOrSlug/toggle', requireRole('editor'), async (req, res, next) => {
+    try {
+        const workflow = await workflowService.toggleWorkflow(req.params.idOrSlug, req.body.isEnabled);
+        res.json({ success: true, data: workflow });
+    } catch (err) { next(err); }
+});
+
+router.delete('/workflows/:idOrSlug', requireRole('admin'), async (req, res, next) => {
+    try {
+        await workflowService.deleteWorkflow(req.params.idOrSlug);
+        res.json({ success: true, message: 'Workflow deleted' });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// COMPLIANCE ROUTES
+// ============================================
+router.post('/compliance/configs', requireRole('admin'), async (req, res, next) => {
+    try {
+        const cfg = await complianceService.createConfig(req.body);
+        res.status(201).json({ success: true, data: cfg });
+    } catch (err) { next(err); }
+});
+
+router.get('/compliance/configs', async (req, res, next) => {
+    try {
+        const configs = await complianceService.listConfigs();
+        res.json({ success: true, data: configs });
+    } catch (err) { next(err); }
+});
+
+router.get('/compliance/samples', async (req, res, next) => {
+    try {
+        const samples = await complianceService.listSamples(req.query);
+        res.json({ success: true, data: samples });
+    } catch (err) { next(err); }
+});
+
+router.get('/compliance/stats', async (req, res, next) => {
+    try {
+        const stats = await complianceService.getStats();
+        res.json({ success: true, data: stats });
+    } catch (err) { next(err); }
+});
+
+// Run compliance check against a config
+router.post('/compliance/configs/:id/run', requireRole('editor'), async (req, res, next) => {
+    try {
+        const result = await complianceService.runComplianceCheck(
+            req.params.id, req.body.samples || null, req.user?.id
+        );
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Upload samples and run compliance check
+router.post('/compliance/configs/:id/upload-samples', requireRole('editor'), async (req, res, next) => {
+    try {
+        const { samples } = req.body;
+        if (!samples || !Array.isArray(samples) || samples.length === 0) {
+            return res.status(400).json({ success: false, error: 'Samples array is required' });
+        }
+        const result = await complianceService.runComplianceCheck(
+            req.params.id, samples, req.user?.id
+        );
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Get compliance check history for a config
+router.get('/compliance/configs/:id/checks', async (req, res, next) => {
+    try {
+        const checks = await complianceService.getChecks(req.params.id);
+        res.json({ success: true, data: checks });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// BUDGET / COST ROUTES
+// ============================================
+router.post('/budgets', requireRole('admin'), async (req, res, next) => {
+    try {
+        const budget = await costService.createBudget(req.body);
+        res.status(201).json({ success: true, data: budget });
+    } catch (err) { next(err); }
+});
+
+router.get('/budgets', async (req, res, next) => {
+    try {
+        const budgets = await costService.listBudgets();
+        res.json({ success: true, data: budgets });
+    } catch (err) { next(err); }
+});
+
+router.put('/budgets/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        const budget = await costService.updateBudget(req.params.id, req.body);
+        res.json({ success: true, data: budget });
+    } catch (err) { next(err); }
+});
+
+router.get('/cost/report', async (req, res, next) => {
+    try {
+        const report = await costService.getUsageReport(req.query);
+        res.json({ success: true, data: report });
+    } catch (err) { next(err); }
+});
+
+router.get('/cost/stats', async (req, res, next) => {
+    try {
+        const stats = await costService.getStats();
+        res.json({ success: true, data: stats });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// AUDIT LOG ROUTES
+// ============================================
+router.get('/audit', async (req, res, next) => {
+    try {
+        const result = await auditService.query(req.query);
+        res.json({ success: true, data: result.logs, total: result.total, limit: result.limit, offset: result.offset });
+    } catch (err) { next(err); }
+});
+
+router.get('/audit/filters', async (req, res, next) => {
+    try {
+        const filters = await auditService.getFilterOptions();
+        res.json({ success: true, data: filters });
+    } catch (err) { next(err); }
+});
+
+router.get('/audit/stats', async (req, res, next) => {
+    try {
+        const stats = await auditService.getStats(req.query.since);
+        res.json({ success: true, data: stats });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// DASHBOARD — Aggregated stats
+// ============================================
+router.get('/dashboard', async (req, res, next) => {
+    try {
+        const [agentStats, auditStats, complianceStats, costStats] = await Promise.all([
+            RegistryService.getStats(),
+            auditService.getStats('24 hours'),
+            complianceService.getStats(),
+            costService.getStats(),
+        ]);
+
+        res.json({
+            success: true,
+            data: { agents: agentStats, audit: auditStats, compliance: complianceStats, cost: costStats },
+        });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// SEED SAMPLE AGENTS
+// ============================================
+const SAMPLE_AGENTS = [
+    { name: 'GPT-4 Analyst', slug: 'gpt4-analyst', type: 'external', vendor: 'OpenAI', protocol: 'rest', endpointUrl: 'https://api.openai.com/v1/chat/completions', description: 'General-purpose LLM agent via REST API' },
+    { name: 'Claude Researcher', slug: 'claude-researcher', type: 'external', vendor: 'Anthropic', protocol: 'rest', endpointUrl: 'https://api.anthropic.com/v1/messages', description: 'Research & analysis agent via REST API' },
+    { name: 'Code Review Agent', slug: 'code-review', type: 'internal', vendor: null, protocol: 'mcp', endpointUrl: 'http://internal-mcp:8080/tools/review', description: 'Code review agent via Model Context Protocol' },
+    { name: 'Financial Reconciliation', slug: 'fin-recon', type: 'internal', vendor: null, protocol: 'a2a', endpointUrl: 'http://internal-a2a:9090/.well-known/agent.json', description: 'Financial agent using Agent-to-Agent protocol' },
+    { name: 'Data Pipeline Agent', slug: 'data-pipeline', type: 'external', vendor: 'Databricks', protocol: 'grpc', endpointUrl: 'grpc://ml-agents.internal:443', description: 'ML data pipeline agent via gRPC' },
+    { name: 'Support Triage Bot', slug: 'support-triage', type: 'internal', vendor: null, protocol: 'rest', endpointUrl: 'http://internal:8082/triage', description: 'Customer support triage agent via REST' },
+];
+
+router.post('/seed-agents', async (req, res, next) => {
+    try {
+        const registry = RegistryService;
+        const results = [];
+        for (const agent of SAMPLE_AGENTS) {
+            try {
+                const existing = await registry.getAgent(agent.slug);
+                results.push({ slug: agent.slug, status: 'skipped', message: 'Already exists' });
+            } catch {
+                const created = await registry.registerAgent(agent, req.user?.id);
+                results.push({ slug: agent.slug, status: 'created', id: created.id });
+            }
+        }
+        res.json({ success: true, data: results });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// PLAYGROUND — Simulate policy evaluation
+// ============================================
+router.post('/playground/simulate', async (req, res, next) => {
+    try {
+        const { userId, userRole, userEmail, department, agentSlug, workflowSlug, customContext } = req.body;
+
+        // Build the context object that the policy engine will evaluate
+        const context = {
+            user: {
+                id: userId || 'playground-user',
+                role: userRole || 'viewer',
+                email: userEmail || 'test@example.com',
+                department: department || 'engineering',
+            },
+            agent: null,
+            workflow: null,
+            request: {
+                method: 'POST',
+                path: agentSlug ? `/api/v1/gateway/agents/${agentSlug}/invoke` : `/api/v1/gateway/workflows/${workflowSlug}/run`,
+                timestamp: new Date().toISOString(),
+                ...(customContext || {}),
+            },
+        };
+
+        // Lookup real agent/workflow details
+        const registry = RegistryService;
+        if (agentSlug) {
+            try {
+                const agent = await registry.getAgent(agentSlug);
+                context.agent = { id: agent.id, slug: agent.slug, name: agent.name, type: agent.type, protocol: agent.protocol, vendor: agent.vendor };
+            } catch {
+                context.agent = { slug: agentSlug, type: 'unknown' };
+            }
+        }
+        if (workflowSlug) {
+            try {
+                const wf = await workflowService.getWorkflow(workflowSlug);
+                context.workflow = { id: wf.id, slug: wf.slug, name: wf.name, agents: wf.agents };
+                if (wf.agents && wf.agents.length > 0 && wf.agents[0].agent_id) {
+                    try {
+                        const firstAgent = await registry.getAgent(wf.agents[0].agent_id);
+                        context.agent = { id: firstAgent.id, slug: firstAgent.slug, name: firstAgent.name, type: firstAgent.type, protocol: firstAgent.protocol };
+                    } catch { }
+                }
+            } catch {
+                context.workflow = { slug: workflowSlug };
+            }
+        }
+
+        // Use the real policy evaluation engine — same one the gateway uses
+        const decision = await policyService.evaluate(context);
+
+        // Also build per-policy trace for debugging
+        const allPolicies = await policyService.listPolicies({ isActive: true });
+        const policyEvaluations = [];
+        for (const policy of allPolicies) {
+            const rules = policy.rules_json || {};
+            const subjectTarget = context.user || {};
+            const resourceTarget = context.workflow || context.agent || {};
+
+            // Evaluate subject conditions (skip empty/placeholder conditions)
+            let subjectMatched = true;
+            const subjectDetails = [];
+            const validSubjects = (rules.subjects || []).filter(c => c.field && c.field.trim());
+            if (validSubjects.length > 0) {
+                for (const cond of validSubjects) {
+                    const actualValue = policyService._getNestedValue(subjectTarget, cond.field);
+                    const condResult = policyService._evaluateCondition(cond, subjectTarget);
+                    subjectDetails.push({ field: cond.field, op: cond.op, expected: cond.value, actual: actualValue, passed: condResult });
+                    if (!condResult) subjectMatched = false;
+                }
+            }
+
+            // Evaluate resource conditions (skip empty/placeholder conditions)
+            let resourceMatched = true;
+            const resourceDetails = [];
+            const validResources = (rules.resources || []).filter(c => c.field && c.field.trim());
+            if (validResources.length > 0) {
+                const anyMatch = validResources.some(cond => policyService._evaluateCondition(cond, resourceTarget));
+                for (const cond of validResources) {
+                    const actualValue = policyService._getNestedValue(resourceTarget, cond.field);
+                    const condResult = policyService._evaluateCondition(cond, resourceTarget);
+                    resourceDetails.push({ field: cond.field, op: cond.op, expected: cond.value, actual: actualValue, passed: condResult });
+                }
+                resourceMatched = anyMatch;
+            }
+
+            const matched = subjectMatched && resourceMatched;
+            policyEvaluations.push({
+                policy: { id: policy.id, name: policy.name, priority: policy.priority },
+                matched,
+                effect: rules.effect || 'deny',
+                reason: matched ? `Policy "${policy.name}" matched (${rules.effect})` : 'Conditions not met',
+                subjectConditions: subjectDetails,
+                resourceConditions: resourceDetails,
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                context,
+                decision,
+                policyEvaluations,
+                totalPoliciesChecked: allPolicies.length,
+            },
+        });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// PLAYGROUND — Test-invoke an agent (status + policy + execution)
+// ============================================
+router.post('/playground/test-invoke', async (req, res, next) => {
+    try {
+        const { agentSlug, workflowSlug, input, userRole, userEmail, department } = req.body;
+        const registry = RegistryService;
+        const { forwardToAgent } = require('../gateway/proxy');
+
+        const checks = { status: null, policy: null };
+        let agent = null;
+
+        // 1. Lookup agent/workflow
+        if (agentSlug) {
+            agent = await registry.getAgent(agentSlug);
+        } else if (workflowSlug) {
+            const wf = await workflowService.getWorkflow(workflowSlug);
+            const agents = typeof wf.agents === 'string' ? JSON.parse(wf.agents) : wf.agents;
+            if (!agents || agents.length === 0) {
+                return res.json({ success: true, data: { checks: { status: { passed: false, reason: 'Workflow has no agents configured' } }, response: null } });
+            }
+            agent = await registry.getAgent(agents[0].agent_id || agents[0].agent_slug);
+        } else {
+            return res.status(400).json({ success: false, error: 'Provide agentSlug or workflowSlug' });
+        }
+
+        // 2. Status check
+        if (!agent.is_active) {
+            checks.status = { passed: false, reason: `Agent "${agent.name}" is inactive. Activate it in Agent Registry.` };
+            return res.json({ success: true, data: { agent: { slug: agent.slug, name: agent.name, protocol: agent.protocol, isActive: false }, checks, response: null } });
+        }
+        if (agent.health_status === 'unhealthy') {
+            checks.status = { passed: false, reason: `Agent "${agent.name}" is unhealthy. Check the endpoint.` };
+            return res.json({ success: true, data: { agent: { slug: agent.slug, name: agent.name, protocol: agent.protocol, healthStatus: 'unhealthy' }, checks, response: null } });
+        }
+        checks.status = { passed: true, reason: `Agent "${agent.name}" is active and healthy` };
+
+        // 3. Policy check
+        const context = {
+            user: { id: 'playground-user', role: userRole || 'viewer', email: userEmail || 'test@example.com', department: department || 'engineering' },
+            agent: { id: agent.id, slug: agent.slug, name: agent.name, type: agent.type, protocol: agent.protocol, vendor: agent.vendor },
+            request: { method: 'POST', path: `/api/v1/gateway/agents/${agent.slug}/invoke`, timestamp: new Date().toISOString() },
+        };
+        const decision = await policyService.evaluate(context);
+        if (!decision.allowed) {
+            checks.policy = { passed: false, reason: decision.reason, matchedPolicy: decision.matchedPolicy?.name || null };
+            return res.json({ success: true, data: { agent: { slug: agent.slug, name: agent.name, protocol: agent.protocol, isActive: true }, checks, response: null } });
+        }
+        checks.policy = { passed: true, reason: decision.reason || 'All policies passed', matchedPolicy: decision.matchedPolicy?.name || null };
+
+        // 4. Resolve API key from LLM settings if agent's auth_config is empty
+        const authConfig = agent.auth_config || {};
+        if (!authConfig.type && !authConfig.token && !authConfig.key) {
+            // Try to find a matching LLM connection in settings
+            const llmSettings = await settingsService.getSettings('llm');
+            const vendor = (agent.vendor || '').toLowerCase();
+            for (const setting of llmSettings) {
+                const val = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+                if (val && val.apiKey) {
+                    const settingKey = (setting.key || '').toLowerCase();
+                    const provider = (val.provider || '').toLowerCase();
+                    // Match by vendor or provider name
+                    if (settingKey.includes(vendor) || provider.includes(vendor) ||
+                        (vendor === 'openai' && (settingKey.includes('openai') || settingKey.includes('gpt'))) ||
+                        (vendor === 'anthropic' && (settingKey.includes('anthropic') || settingKey.includes('claude')))) {
+                        agent = { ...agent, auth_config: { type: 'bearer', token: val.apiKey } };
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 5. Auto-format payload for known vendors if user sent a simple prompt
+        let formattedInput = input || {};
+        const vendor = (agent.vendor || '').toLowerCase();
+        const endpoint = (agent.endpoint_url || '').toLowerCase();
+
+        // Detect simple prompt-style input (no model/messages fields)
+        if (formattedInput.prompt && !formattedInput.model && !formattedInput.messages) {
+            // Resolve model name from LLM settings
+            let modelName = 'gpt-4o'; // default
+            try {
+                const llmSettings = await settingsService.getSettings('llm');
+                for (const s of llmSettings) {
+                    const val = typeof s.value === 'string' ? JSON.parse(s.value) : s.value;
+                    if (val?.model) { modelName = val.model; break; }
+                }
+            } catch { /* use default */ }
+
+            if (vendor === 'openai' || endpoint.includes('openai.com')) {
+                formattedInput = {
+                    model: modelName,
+                    messages: [{ role: 'user', content: formattedInput.prompt }],
+                    ...(formattedInput.temperature != null ? { temperature: formattedInput.temperature } : {}),
+                    ...(formattedInput.max_tokens != null ? { max_tokens: formattedInput.max_tokens } : {}),
+                };
+            } else if (vendor === 'anthropic' || endpoint.includes('anthropic.com')) {
+                formattedInput = {
+                    model: modelName.startsWith('claude') ? modelName : 'claude-3-5-sonnet-20241022',
+                    messages: [{ role: 'user', content: formattedInput.prompt }],
+                    max_tokens: formattedInput.max_tokens || 1024,
+                };
+            }
+        }
+
+        // 6. Invoke agent
+        const startTime = Date.now();
+        let agentResponse;
+        try {
+            agentResponse = await forwardToAgent(agent, formattedInput, {});
+        } catch (invokeErr) {
+            return res.json({ success: true, data: { agent: { slug: agent.slug, name: agent.name, protocol: agent.protocol, isActive: true }, checks, response: { error: invokeErr.message }, latencyMs: Date.now() - startTime } });
+        }
+        const latencyMs = Date.now() - startTime;
+
+        res.json({
+            success: true,
+            data: {
+                agent: { slug: agent.slug, name: agent.name, protocol: agent.protocol, isActive: true, endpoint: agent.endpoint_url },
+                checks,
+                response: agentResponse.data,
+                latencyMs,
+                usage: agentResponse.usage || null,
+            },
+        });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// WORKFLOW AGENT STEPS
+// ============================================
+router.post('/workflows/:idOrSlug/steps', requireRole('editor'), async (req, res, next) => {
+    try {
+        const { agentId, stepOrder, config } = req.body;
+        const result = await workflowService.addAgentStep(req.params.idOrSlug, agentId, stepOrder, config);
+        res.status(201).json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.delete('/workflows/:idOrSlug/steps/:agentId', requireRole('editor'), async (req, res, next) => {
+    try {
+        await workflowService.removeAgentStep(req.params.idOrSlug, req.params.agentId);
+        res.json({ success: true, message: 'Step removed' });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// Role-based authorization middleware
+// ============================================
+function requireRole(...roles) {
+    const roleHierarchy = { super_admin: 4, admin: 3, editor: 2, viewer: 1 };
+    const minLevel = Math.min(...roles.map(r => roleHierarchy[r] || 0));
+
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ success: false, error: 'Authentication required' });
+        }
+        const userLevel = roleHierarchy[req.user.role] || 0;
+        if (userLevel < minLevel) {
+            return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+        }
+        next();
+    };
+}
+
+module.exports = router;
+
+// ============================================
+// SETTINGS ROUTES
+// ============================================
+router.get('/settings/:category', async (req, res, next) => {
+    try {
+        const settings = await settingsService.getSettings(req.params.category);
+        res.json({ success: true, data: settings });
+    } catch (err) { next(err); }
+});
+
+router.put('/settings', requireRole('admin'), async (req, res, next) => {
+    try {
+        const setting = await settingsService.upsertSetting(req.body);
+        res.json({ success: true, data: setting });
+    } catch (err) { next(err); }
+});
+
+router.delete('/settings/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await settingsService.deleteSetting(req.params.id);
+        res.json({ success: true, message: 'Setting deleted' });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// COMPLIANCE RULES ROUTES
+// ============================================
+router.get('/compliance/rules/:framework', async (req, res, next) => {
+    try {
+        const rules = await settingsService.getComplianceRules(req.params.framework);
+        res.json({ success: true, data: rules });
+    } catch (err) { next(err); }
+});
+
+router.put('/compliance/rules', requireRole('admin'), async (req, res, next) => {
+    try {
+        const rule = await settingsService.upsertComplianceRule(req.body);
+        res.json({ success: true, data: rule });
+    } catch (err) { next(err); }
+});
+
+router.patch('/compliance/rules/:id/toggle', requireRole('editor'), async (req, res, next) => {
+    try {
+        const rule = await settingsService.toggleRule(req.params.id, req.body.isEnabled);
+        res.json({ success: true, data: rule });
+    } catch (err) { next(err); }
+});
+
+router.delete('/compliance/rules/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await settingsService.deleteRule(req.params.id);
+        res.json({ success: true, message: 'Rule deleted' });
+    } catch (err) { next(err); }
+});
+
+// Global compliance check history
+router.get('/compliance/checks/history', async (req, res, next) => {
+    try {
+        const checks = await settingsService.getAllChecksHistory(parseInt(req.query.limit) || 50);
+        res.json({ success: true, data: checks });
+    } catch (err) { next(err); }
+});
+
+// CSV/XLS Upload for compliance rules
+router.post('/compliance/rules/upload', upload.single('file'), async (req, res, next) => {
+    try {
+        if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+        const framework = req.body.framework;
+        if (!framework) return res.status(400).json({ success: false, error: 'Framework is required' });
+
+        // Parse file
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        if (rows.length === 0) return res.status(400).json({ success: false, error: 'File is empty' });
+
+        // Expected columns: name, description, category, severity, pass_input, pass_output, fail_input, fail_output
+        let imported = 0;
+        const errors = [];
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const name = (row.name || row.Name || row.rule_name || row['Rule Name'] || '').toString().trim();
+            if (!name) { errors.push(`Row ${i + 2}: missing name`); continue; }
+
+            const evaluationConfig = {};
+            const passInput = (row.pass_input || row['Pass Input'] || row.pass_sample_input || '').toString().trim();
+            const passOutput = (row.pass_output || row['Pass Output'] || row.pass_sample_output || '').toString().trim();
+            const failInput = (row.fail_input || row['Fail Input'] || row.fail_sample_input || '').toString().trim();
+            const failOutput = (row.fail_output || row['Fail Output'] || row.fail_sample_output || '').toString().trim();
+
+            if (passInput || passOutput || failInput || failOutput) {
+                evaluationConfig.samples = {};
+                if (passInput || passOutput) evaluationConfig.samples.pass = { input: passInput, output: passOutput };
+                if (failInput || failOutput) evaluationConfig.samples.fail = { input: failInput, output: failOutput };
+            }
+
+            try {
+                await settingsService.upsertComplianceRule({
+                    framework,
+                    name,
+                    description: (row.description || row.Description || '').toString().trim(),
+                    category: (row.category || row.Category || 'custom').toString().trim(),
+                    severity: (row.severity || row.Severity || 'medium').toString().trim().toLowerCase(),
+                    isEnabled: true,
+                    evaluationConfig: Object.keys(evaluationConfig).length > 0 ? evaluationConfig : undefined,
+                });
+                imported++;
+            } catch (err) {
+                errors.push(`Row ${i + 2}: ${err.message}`);
+            }
+        }
+
+        res.json({ success: true, data: { imported, total: rows.length, errors } });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// EVALUATION ROUTES
+// ============================================
+router.post('/evaluations/suites', async (req, res, next) => {
+    try {
+        const suite = await evaluationService.createSuite({ ...req.body, created_by: req.user?.id });
+        res.status(201).json({ success: true, data: suite });
+    } catch (err) { next(err); }
+});
+
+router.get('/evaluations/suites', async (req, res, next) => {
+    try {
+        const suites = await evaluationService.listSuites(req.query);
+        res.json({ success: true, data: suites });
+    } catch (err) { next(err); }
+});
+
+router.get('/evaluations/suites/:id', async (req, res, next) => {
+    try {
+        const suite = await evaluationService.getSuite(req.params.id);
+        if (!suite) return res.status(404).json({ success: false, error: 'Suite not found' });
+        res.json({ success: true, data: suite });
+    } catch (err) { next(err); }
+});
+
+router.put('/evaluations/suites/:id', async (req, res, next) => {
+    try {
+        const suite = await evaluationService.updateSuite(req.params.id, req.body);
+        res.json({ success: true, data: suite });
+    } catch (err) { next(err); }
+});
+
+router.delete('/evaluations/suites/:id', async (req, res, next) => {
+    try {
+        await evaluationService.deleteSuite(req.params.id);
+        res.json({ success: true });
+    } catch (err) { next(err); }
+});
+
+router.post('/evaluations/suites/:id/run', async (req, res, next) => {
+    try {
+        const result = await evaluationService.runEvaluation(req.params.id, req.body.judgeModel || null, req.user?.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.get('/evaluations/suites/:id/runs', async (req, res, next) => {
+    try {
+        const runs = await evaluationService.getRunHistory(req.params.id);
+        res.json({ success: true, data: runs });
+    } catch (err) { next(err); }
+});
+
+router.get('/evaluations/runs/:id', async (req, res, next) => {
+    try {
+        const run = await evaluationService.getRun(req.params.id);
+        if (!run) return res.status(404).json({ success: false, error: 'Run not found' });
+        res.json({ success: true, data: run });
+    } catch (err) { next(err); }
+});
+
+router.get('/evaluations/reviews', async (req, res, next) => {
+    try {
+        const reviews = await evaluationService.getPendingReviews(req.query);
+        res.json({ success: true, data: reviews });
+    } catch (err) { next(err); }
+});
+
+router.put('/evaluations/reviews/:id', async (req, res, next) => {
+    try {
+        const review = await evaluationService.submitReview(req.params.id, { ...req.body, reviewed_by: req.user?.id });
+        res.json({ success: true, data: review });
+    } catch (err) { next(err); }
+});
+
+router.get('/evaluations/stats', async (req, res, next) => {
+    try {
+        const stats = await evaluationService.getStats();
+        res.json({ success: true, data: stats });
+    } catch (err) { next(err); }
+});
+
+router.get('/evaluations/personas', async (req, res, next) => {
+    try {
+        const personas = evaluationService.getPersonaTemplates();
+        res.json({ success: true, data: personas });
+    } catch (err) { next(err); }
+});
