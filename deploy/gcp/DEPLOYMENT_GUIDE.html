@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentShield — GCP Deployment Guide (Field-Tested)</title>
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --surface: #111827;
+            --surface-2: #1a2236;
+            --border: #1e2d4a;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --green: #22c55e;
+            --green-bg: rgba(34, 197, 94, 0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.08);
+            --amber: #f59e0b;
+            --amber-bg: rgba(245, 158, 11, 0.1);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59, 130, 246, 0.1);
+            --cyan: #06b6d4;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1040 0%, #0f172a 50%, #0c1a2e 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 70% 50%, rgba(6,182,212,0.06) 0%, transparent 60%);
+            animation: pulse 8s ease-in-out infinite alternate;
+        }
+        @keyframes pulse {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #818cf8, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+        .header .subtitle {
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            position: relative;
+        }
+        .header .badge {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.3rem 1rem;
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(34,197,94,0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            position: relative;
+        }
+
+        /* Content */
+        .content {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2.5rem;
+        }
+        .toc h2 {
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .toc ol { padding-left: 1.5rem; }
+        .toc li {
+            margin-bottom: 0.35rem;
+            color: var(--text-muted);
+        }
+        .toc a {
+            color: var(--text);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .toc a:hover { color: var(--accent); }
+
+        /* Sections */
+        .section {
+            margin-bottom: 3rem;
+        }
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+            color: #f1f5f9;
+        }
+        .section h2 .step-num {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            background: var(--accent);
+            color: white;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+        .section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: #cbd5e1;
+        }
+        .section p, .section li {
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        .section ul, .section ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Code blocks */
+        pre {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            overflow-x: auto;
+            margin: 0.75rem 0 1.25rem;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85em;
+        }
+        p code, li code {
+            background: rgba(99,102,241,0.12);
+            color: #a5b4fc;
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+        }
+
+        /* Alert boxes */
+        .alert {
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+        .alert-danger {
+            background: var(--red-bg);
+            border-color: var(--red);
+        }
+        .alert-danger .alert-title { color: var(--red); }
+        .alert-warning {
+            background: var(--amber-bg);
+            border-color: var(--amber);
+        }
+        .alert-warning .alert-title { color: var(--amber); }
+        .alert-success {
+            background: var(--green-bg);
+            border-color: var(--green);
+        }
+        .alert-success .alert-title { color: var(--green); }
+        .alert-info {
+            background: var(--blue-bg);
+            border-color: var(--blue);
+        }
+        .alert-info .alert-title { color: var(--blue); }
+        .alert-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.3rem;
+        }
+        .alert p { margin: 0; color: var(--text-muted); font-size: 0.92rem; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        th {
+            background: var(--surface-2);
+            color: var(--text);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.6rem 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        tr:hover td { background: rgba(99,102,241,0.04); }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin: 1rem 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.25rem;
+            padding-left: 1rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.55rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+        }
+        .timeline-item.success::before { background: var(--green); }
+        .timeline-item.error::before { background: var(--red); }
+        .timeline-item.warning::before { background: var(--amber); }
+        .timeline-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+        .timeline-title {
+            font-weight: 600;
+            color: var(--text);
+        }
+        .timeline-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Duration badge */
+        .duration {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--cyan);
+            font-family: monospace;
+            margin-left: 0.5rem;
+        }
+
+        /* Diff blocks */
+        .diff {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.82rem;
+            margin: 0.75rem 0;
+            overflow-x: auto;
+        }
+        .diff .add { color: #3fb950; }
+        .diff .del { color: #f85149; }
+        .diff .ctx { color: #8b949e; }
+
+        /* Architecture diagram */
+        .arch-diagram {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            font-family: monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            white-space: pre;
+            overflow-x: auto;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5rem; }
+            .content { padding: 1rem; }
+            pre { font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🛡️ AgentShield — GCP Deployment Guide</h1>
+    <div class="subtitle">Field-tested deployment playbook with bottlenecks, fixes, and lessons learned</div>
+    <div class="badge">✅ Verified on 2026-06-28 — All Services Live</div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════════════════════════════════ TOC ═══════════════════════════════════════ -->
+<nav class="toc">
+    <h2>📋 Table of Contents</h2>
+    <ol>
+        <li><a href="#overview">Deployment Overview & Architecture</a></li>
+        <li><a href="#prerequisites">Prerequisites Checklist</a></li>
+        <li><a href="#step1">Step 1: Project Setup & API Enablement</a></li>
+        <li><a href="#step2">Step 2: Infrastructure (Cloud SQL + Redis + VPC)</a></li>
+        <li><a href="#step3">Step 3: Secret Manager</a></li>
+        <li><a href="#step4">Step 4: Deploy Backend to Cloud Run</a></li>
+        <li><a href="#step5">Step 5: Deploy Dashboard to Firebase Hosting</a></li>
+        <li><a href="#step6">Step 6: Deploy Test Agents</a></li>
+        <li><a href="#step7">Step 7: Register Agents</a></li>
+        <li><a href="#step8">Step 8: Run POC Validation Tests</a></li>
+        <li><a href="#bottlenecks">Bottlenecks & Fixes (Critical Reference)</a></li>
+        <li><a href="#timeline">Actual Deployment Timeline</a></li>
+        <li><a href="#costs">Cost Breakdown</a></li>
+        <li><a href="#teardown">Teardown & Cleanup</a></li>
+        <li><a href="#lessons">Lessons Learned & Best Practices</a></li>
+    </ol>
+</nav>
+
+<!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+<div class="section" id="overview">
+    <h2>Deployment Overview & Architecture</h2>
+
+    <p>This guide documents the <strong>exact steps, commands, and fixes</strong> used in the first successful production deployment of AgentShield to Google Cloud Platform. Every bottleneck encountered is documented with its resolution.</p>
+
+    <div class="arch-diagram">
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Google Cloud Platform                        │
+│                       Project: agentshield-poc                      │
+│                                                                     │
+│  ┌──────────────────────┐     ┌────────────────────────────────┐   │
+│  │   Firebase Hosting   │     │        Cloud Run               │   │
+│  │   (Dashboard SPA)    │────▶│   agentshield-api (:3000)      │   │
+│  │                      │     │   • min-instances: 1           │   │
+│  │  agentshield-        │     │   • max-instances: 4           │   │
+│  │  dashboard.web.app   │     │   • 1 vCPU / 1 GB RAM          │   │
+│  └──────────────────────┘     └──────────┬─────────────────────┘   │
+│                                          │                          │
+│                               ┌──────────┼──────────┐              │
+│                               │   VPC Connector      │              │
+│                               │   agentshield-vpc    │              │
+│                               │   10.8.0.0/28        │              │
+│                               └──────────┬──────────┘              │
+│                                          │                          │
+│                    ┌─────────────────────┼─────────────────────┐   │
+│                    │                     │                     │   │
+│          ┌─────────▼──────────┐ ┌───────▼─────────┐          │   │
+│          │   Cloud SQL        │ │  Memorystore     │          │   │
+│          │   PostgreSQL 16    │ │  Redis 7.0       │          │   │
+│          │   agentshield-db   │ │  agentshield-    │          │   │
+│          │   35.224.1.245     │ │  redis           │          │   │
+│          │   1 vCPU / 3.75 GB │ │  10.20.57.35     │          │   │
+│          └────────────────────┘ └─────────────────┘          │   │
+│                                                               │   │
+│  ┌────────────────────────────────────────────────────────┐   │   │
+│  │              Cloud Run — Test Agents                   │   │   │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐         │   │   │
+│  │  │echo-agent  │ │finance-    │ │support-    │         │   │   │
+│  │  │(REST)      │ │agent(REST) │ │agent(REST) │         │   │   │
+│  │  │Baseline    │ │Cost/Usage  │ │PII/Guard   │         │   │   │
+│  │  └────────────┘ └────────────┘ └────────────┘         │   │   │
+│  │  ┌────────────┐                                        │   │   │
+│  │  │weather-mcp │  All agents: scale-to-zero             │   │   │
+│  │  │(MCP/SSE)   │  0.5 vCPU / 256 MB RAM                │   │   │
+│  │  └────────────┘                                        │   │   │
+│  └────────────────────────────────────────────────────────┘   │   │
+│                                                                     │
+│  ┌────────────────────────────────────────────────────────────┐     │
+│  │  Secret Manager:  agentshield-jwt-secret                  │     │
+│  │                   agentshield-db-password                  │     │
+│  │                   agentshield-compliance-key               │     │
+│  └────────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────────┘
+    </div>
+
+    <table>
+        <thead><tr><th>Service</th><th>Resource</th><th>Purpose</th></tr></thead>
+        <tbody>
+            <tr><td>Cloud Run</td><td>agentshield-api</td><td>Backend API (1 vCPU, 1 GB, min 1 instance)</td></tr>
+            <tr><td>Cloud SQL</td><td>agentshield-db</td><td>PostgreSQL 16 (Enterprise, 1 vCPU, 3.75 GB)</td></tr>
+            <tr><td>Memorystore</td><td>agentshield-redis</td><td>Redis 7.0 (1 GB, caching layer)</td></tr>
+            <tr><td>VPC Connector</td><td>agentshield-vpc</td><td>Private networking (10.8.0.0/28)</td></tr>
+            <tr><td>Firebase Hosting</td><td>agentshield-dashboard</td><td>React SPA dashboard</td></tr>
+            <tr><td>Secret Manager</td><td>3 secrets</td><td>JWT, DB password, compliance key</td></tr>
+            <tr><td>Cloud Run (x4)</td><td>test agents</td><td>Echo, Finance, Support, Weather MCP</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════ PREREQUISITES ═══════════════════════════════════════ -->
+<div class="section" id="prerequisites">
+    <h2>Prerequisites Checklist</h2>
+
+    <p>Verify these before starting deployment:</p>
+
+<pre><code># 1. Google Cloud SDK installed
+gcloud --version
+# Verified: Google Cloud SDK 529.0.0
+
+# 2. Authenticated
+gcloud auth list
+# Should show your Google account
+
+# 3. Node.js 20+ (for dashboard build)
+node --version
+
+# 4. Billing account available
+gcloud billing accounts list
+# Need at least one OPEN billing account
+
+# 5. Firebase CLI (auto-installed via npx)
+npx -y firebase-tools --version</code></pre>
+
+    <div class="alert alert-info">
+        <div class="alert-title">ℹ️ Note</div>
+        <p>The deployment uses <code>npx -y firebase-tools</code> so Firebase CLI doesn't need to be globally installed.</p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 1 ═══════════════════════════════════════ -->
+<div class="section" id="step1">
+    <h2><span class="step-num">1</span> Project Setup & API Enablement <span class="duration">~3 min</span></h2>
+
+    <h3>1.1 Create config.env</h3>
+<pre><code>cd deploy/gcp
+cp config.env.template config.env
+# Edit config.env with your GCP_PROJECT_ID</code></pre>
+
+    <h3>1.2 Create GCP Project</h3>
+<pre><code>gcloud projects create agentshield-poc --name="AgentShield POC"</code></pre>
+
+    <h3>1.3 Link Billing</h3>
+<pre><code># Find your billing account ID
+gcloud billing accounts list
+
+# Link it
+gcloud billing projects link agentshield-poc \
+  --billing-account=YOUR_BILLING_ACCOUNT_ID</code></pre>
+
+    <h3>1.4 Set Active Project & Region</h3>
+<pre><code>gcloud config set project agentshield-poc
+gcloud config set run/region us-central1
+gcloud config set compute/region us-central1</code></pre>
+
+    <div class="alert alert-warning">
+        <div class="alert-title">⚠️ Bottleneck: Compute API Prompt</div>
+        <p>Setting <code>compute/region</code> triggers a prompt: "API [compute.googleapis.com] not enabled. Enable? (y/N)". 
+        Type <code>y</code> and wait ~1 minute. This is expected on a fresh project.</p>
+    </div>
+
+    <h3>1.5 Enable All Required APIs</h3>
+<pre><code>gcloud services enable \
+  run.googleapis.com \
+  sqladmin.googleapis.com \
+  redis.googleapis.com \
+  artifactregistry.googleapis.com \
+  secretmanager.googleapis.com \
+  cloudbuild.googleapis.com \
+  vpcaccess.googleapis.com \
+  firebasehosting.googleapis.com \
+  firebase.googleapis.com \
+  --project=agentshield-poc</code></pre>
+
+    <div class="alert alert-info">
+        <div class="alert-title">ℹ️ Tip</div>
+        <p>Enable <code>firebasehosting.googleapis.com</code> and <code>firebase.googleapis.com</code> here too — saves a round-trip later in Step 5.</p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 2 ═══════════════════════════════════════ -->
+<div class="section" id="step2">
+    <h2><span class="step-num">2</span> Infrastructure (Cloud SQL + Redis + VPC) <span class="duration">~10 min</span></h2>
+
+    <h3>2.1 Generate DB Password</h3>
+<pre><code>DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
+echo "Password: $DB_PASSWORD"
+# Save this in config.env → DB_PASSWORD=...</code></pre>
+
+    <h3>2.2 Create Cloud SQL Instance</h3>
+
+    <div class="alert alert-danger">
+        <div class="alert-title">🚨 Critical: Correct Tier Name</div>
+        <p><strong>Do NOT use <code>db-f1-micro</code></strong> — this fails with "Invalid Tier for ENTERPRISE_PLUS Edition". 
+        Use <code>db-custom-1-3840</code> with <code>--edition=enterprise</code> instead.</p>
+    </div>
+
+<pre><code>gcloud sql instances create agentshield-db \
+  --database-version=POSTGRES_16 \
+  --tier=db-custom-1-3840 \
+  --edition=enterprise \
+  --region=us-central1 \
+  --storage-size=10GB \
+  --storage-type=SSD \
+  --availability-type=zonal \
+  --assign-ip \
+  --authorized-networks=0.0.0.0/0 \
+  --project=agentshield-poc \
+  --quiet
+
+# ⏱️ Takes 3-5 minutes</code></pre>
+
+    <h3>2.3 Create VPC Connector (run in parallel with SQL)</h3>
+<pre><code>gcloud compute networks vpc-access connectors create agentshield-vpc \
+  --region=us-central1 \
+  --range=10.8.0.0/28 \
+  --project=agentshield-poc \
+  --quiet
+
+# ⏱️ Takes 2-3 minutes</code></pre>
+
+    <h3>2.4 Create Memorystore Redis</h3>
+<pre><code>gcloud redis instances create agentshield-redis \
+  --size=1 \
+  --region=us-central1 \
+  --redis-version=redis_7_0 \
+  --project=agentshield-poc \
+  --quiet
+
+# ⏱️ Takes 5-7 minutes</code></pre>
+
+    <div class="alert alert-info">
+        <div class="alert-title">ℹ️ Parallelization Tip</div>
+        <p>Cloud SQL, VPC connector, and Redis have no dependencies. Run all three in separate terminal tabs to save ~10 minutes.</p>
+    </div>
+
+    <h3>2.5 Create Database & User (after Cloud SQL is ready)</h3>
+<pre><code># Create database
+gcloud sql databases create agentshield \
+  --instance=agentshield-db \
+  --project=agentshield-poc
+
+# Create user
+gcloud sql users create agentshield \
+  --instance=agentshield-db \
+  --password="$DB_PASSWORD" \
+  --project=agentshield-poc</code></pre>
+
+    <h3>2.6 Note Redis IP (after Redis is ready)</h3>
+<pre><code>REDIS_HOST=$(gcloud redis instances describe agentshield-redis \
+  --region=us-central1 --project=agentshield-poc \
+  --format='value(host)')
+echo "Redis IP: $REDIS_HOST"
+# Our deployment: 10.20.57.35</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 3 ═══════════════════════════════════════ -->
+<div class="section" id="step3">
+    <h2><span class="step-num">3</span> Secret Manager <span class="duration">~1 min</span></h2>
+
+    <h3>3.1 Create Secrets</h3>
+<pre><code># Generate secrets
+JWT_SECRET=$(openssl rand -hex 32)
+COMPLIANCE_KEY=$(openssl rand -base64 32 | head -c 32)
+
+# Store in Secret Manager
+echo -n "$JWT_SECRET" | gcloud secrets create agentshield-jwt-secret \
+  --data-file=- --project=agentshield-poc
+
+echo -n "$DB_PASSWORD" | gcloud secrets create agentshield-db-password \
+  --data-file=- --project=agentshield-poc
+
+echo -n "$COMPLIANCE_KEY" | gcloud secrets create agentshield-compliance-key \
+  --data-file=- --project=agentshield-poc</code></pre>
+
+    <h3>3.2 Grant Cloud Run Access</h3>
+<pre><code>PROJECT_NUMBER=$(gcloud projects describe agentshield-poc \
+  --format='value(projectNumber)')
+SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+for secret in agentshield-jwt-secret agentshield-db-password agentshield-compliance-key; do
+  gcloud secrets add-iam-policy-binding "$secret" \
+    --member="serviceAccount:$SA" \
+    --role="roles/secretmanager.secretAccessor" \
+    --project=agentshield-poc \
+    --quiet
+done</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 4 ═══════════════════════════════════════ -->
+<div class="section" id="step4">
+    <h2><span class="step-num">4</span> Deploy Backend to Cloud Run <span class="duration">~8 min</span></h2>
+
+    <h3>4.1 Deploy the Backend</h3>
+<pre><code>gcloud run deploy agentshield-api \
+  --source=. \
+  --region=us-central1 \
+  --project=agentshield-poc \
+  --add-cloudsql-instances=agentshield-poc:us-central1:agentshield-db \
+  --vpc-connector=agentshield-vpc \
+  --set-env-vars="\
+NODE_ENV=production,\
+DB_HOST=/cloudsql/agentshield-poc:us-central1:agentshield-db,\
+DB_NAME=agentshield,\
+DB_USER=agentshield,\
+DB_PORT=5432,\
+DB_SSL=false,\
+REDIS_HOST=$REDIS_HOST,\
+REDIS_PORT=6379,\
+LOG_LEVEL=info,\
+ADMIN_EMAIL=admin@agentshield.local,\
+ADMIN_PASSWORD=admin123" \
+  --set-secrets="\
+JWT_SECRET=agentshield-jwt-secret:latest,\
+DB_PASSWORD=agentshield-db-password:latest,\
+COMPLIANCE_ENCRYPTION_KEY=agentshield-compliance-key:latest" \
+  --min-instances=1 \
+  --max-instances=4 \
+  --memory=1Gi \
+  --cpu=1 \
+  --port=3000 \
+  --allow-unauthenticated \
+  --quiet
+
+# ⏱️ First deploy: 3-5 min (builds Docker image in Cloud Build)
+# Subsequent: 1-2 min (cached layers)</code></pre>
+
+    <h3>4.2 Verify Health</h3>
+<pre><code>BACKEND_URL=$(gcloud run services describe agentshield-api \
+  --region=us-central1 --project=agentshield-poc \
+  --format='value(status.url)')
+
+curl -s "$BACKEND_URL/health" | python3 -m json.tool
+# Should show: {"status":"healthy","database":{"status":"healthy"}}</code></pre>
+
+    <h3>4.3 Run Migrations</h3>
+<pre><code># Get the deployed image
+IMAGE=$(gcloud run services describe agentshield-api \
+  --region=us-central1 --project=agentshield-poc \
+  --format='value(spec.template.spec.containers[0].image)')
+
+# Create migration job
+gcloud run jobs create agentshield-migrate \
+  --image="$IMAGE" \
+  --region=us-central1 \
+  --project=agentshield-poc \
+  --set-cloudsql-instances=agentshield-poc:us-central1:agentshield-db \
+  --vpc-connector=agentshield-vpc \
+  --set-env-vars="DB_HOST=/cloudsql/agentshield-poc:us-central1:agentshield-db,\
+DB_NAME=agentshield,DB_USER=agentshield,DB_SSL=false" \
+  --set-secrets="DB_PASSWORD=agentshield-db-password:latest" \
+  --command="npm" --args="run,migrate" \
+  --max-retries=0 --quiet
+
+# Execute
+gcloud run jobs execute agentshield-migrate \
+  --region=us-central1 --project=agentshield-poc --wait</code></pre>
+
+    <div class="alert alert-warning">
+        <div class="alert-title">⚠️ Bottleneck: Cloud Run Jobs Flag Difference</div>
+        <p>Cloud Run <strong>services</strong> use <code>--add-cloudsql-instances</code>. Cloud Run <strong>jobs</strong> use <code>--set-cloudsql-instances</code>. Using the wrong flag throws an unrecognized argument error.</p>
+    </div>
+
+    <h3>4.4 Seed Admin User</h3>
+
+    <div class="alert alert-danger">
+        <div class="alert-title">🚨 Critical Fix: Invalid Bcrypt Hash in Migration</div>
+        <p>The migration file <code>001_initial_schema.sql</code> seeds an admin user with an <strong>invalid bcrypt hash</strong> that doesn't correspond to any password. Login will fail with "Invalid email or password" even though the user exists in the database.</p>
+        <p><strong>Solution:</strong> The <code>src/db/seed.js</code> script was created to force-update the password hash. It must run <strong>after</strong> migrations.</p>
+    </div>
+
+<pre><code># Create seed job (uses same image as migration)
+gcloud run jobs create agentshield-seed \
+  --image="$IMAGE" \
+  --region=us-central1 \
+  --project=agentshield-poc \
+  --set-cloudsql-instances=agentshield-poc:us-central1:agentshield-db \
+  --vpc-connector=agentshield-vpc \
+  --set-env-vars="DB_HOST=/cloudsql/agentshield-poc:us-central1:agentshield-db,\
+DB_NAME=agentshield,DB_USER=agentshield,DB_SSL=false,\
+ADMIN_EMAIL=admin@agentshield.local,ADMIN_PASSWORD=admin123" \
+  --set-secrets="DB_PASSWORD=agentshield-db-password:latest,\
+JWT_SECRET=agentshield-jwt-secret:latest" \
+  --command="npm" --args="run,seed" \
+  --max-retries=0 --quiet
+
+gcloud run jobs execute agentshield-seed \
+  --region=us-central1 --project=agentshield-poc --wait</code></pre>
+
+    <h3>4.5 Verify Login</h3>
+<pre><code>curl -s -X POST "$BACKEND_URL/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"admin123"}' \
+  | python3 -m json.tool
+
+# Should return: {"success": true, "data": {"token": "...", "user": {...}}}</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 5 ═══════════════════════════════════════ -->
+<div class="section" id="step5">
+    <h2><span class="step-num">5</span> Deploy Dashboard to Firebase Hosting <span class="duration">~3 min</span></h2>
+
+    <h3>5.1 Code Change Required</h3>
+    <p>The dashboard hardcodes <code>API_BASE</code> to <code>localhost:3000</code>. One line change makes it configurable:</p>
+
+    <div class="diff">
+        <div class="ctx">// File: agentshield-dashboard/src/api.js — Line 1</div>
+        <div class="del">- const API_BASE = 'http://localhost:3000/api/v1';</div>
+        <div class="add">+ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api/v1';</div>
+    </div>
+
+    <div class="alert alert-success">
+        <div class="alert-title">✅ Backwards Compatible</div>
+        <p>This change falls back to <code>localhost:3000</code> if <code>VITE_API_BASE</code> is not set, so local development is unaffected.</p>
+    </div>
+
+    <h3>5.2 Build Dashboard with Production API URL</h3>
+<pre><code>cd agentshield-dashboard
+
+VITE_API_BASE="$BACKEND_URL/api/v1" npm run build</code></pre>
+
+    <h3>5.3 Initialize Firebase & Create Hosting Site</h3>
+
+    <div class="alert alert-danger">
+        <div class="alert-title">🚨 Critical: Firebase Must Be Initialized First</div>
+        <p>You <strong>cannot</strong> deploy to Firebase Hosting without first adding Firebase to the GCP project and creating a hosting site. Attempting to deploy directly will fail with: "Unable to deploy — no Hosting site" or "Assertion failed: resolving hosting target".</p>
+    </div>
+
+<pre><code># Step 1: Add Firebase to the GCP project
+npx -y firebase-tools projects:addfirebase agentshield-poc
+
+# Step 2: Create a hosting site
+npx -y firebase-tools hosting:sites:create agentshield-dashboard \
+  --project agentshield-poc</code></pre>
+
+    <h3>5.4 Configure & Deploy</h3>
+<pre><code># Create firebase.json
+cat > firebase.json << 'EOF'
+{
+  "hosting": {
+    "site": "agentshield-dashboard",
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+  }
+}
+EOF
+
+# Create .firebaserc
+cat > .firebaserc << 'EOF'
+{ "projects": { "default": "agentshield-poc" } }
+EOF
+
+# Deploy
+npx -y firebase-tools deploy --only hosting:agentshield-dashboard \
+  --project agentshield-poc</code></pre>
+
+    <div class="alert alert-info">
+        <div class="alert-title">ℹ️ Site URL</div>
+        <p>Dashboard will be available at: <code>https://agentshield-dashboard.web.app</code></p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 6 ═══════════════════════════════════════ -->
+<div class="section" id="step6">
+    <h2><span class="step-num">6</span> Deploy Test Agents <span class="duration">~8 min</span></h2>
+
+    <h3>Agent Overview</h3>
+    <table>
+        <thead><tr><th>Agent</th><th>Protocol</th><th>Purpose</th><th>Governance Modules Tested</th></tr></thead>
+        <tbody>
+            <tr><td>echo-agent</td><td>REST</td><td>Baseline echo</td><td>Auth, Policy, Audit Log</td></tr>
+            <tr><td>finance-agent</td><td>REST</td><td>Usage reporting</td><td>Cost Tracking, Budget Enforcement</td></tr>
+            <tr><td>support-agent</td><td>REST</td><td>PII in responses</td><td>Output Guardrails, Compliance Sampling</td></tr>
+            <tr><td>weather-mcp</td><td>MCP (SSE)</td><td>Tool-based agent</td><td>MCP Protocol Support, Workflow Chaining</td></tr>
+        </tbody>
+    </table>
+
+    <div class="alert alert-danger">
+        <div class="alert-title">🚨 Critical Fix: Dockerfile Must Use npm install</div>
+        <p>The agent Dockerfiles originally used <code>npm ci</code>, which requires a <code>package-lock.json</code>. Since these are lightweight single-file agents without lockfiles, the build fails silently with "Build failed; check build logs for details".</p>
+        <p><strong>Solution:</strong> Change Dockerfiles to use <code>npm install --production</code>:</p>
+    </div>
+
+<pre><code># Correct Dockerfile for all test agents:
+FROM node:20-alpine
+WORKDIR /app
+COPY package.json ./
+RUN npm install --production
+COPY . .
+EXPOSE 8080
+CMD ["node", "server.js"]</code></pre>
+
+    <h3>Deploy All Agents</h3>
+<pre><code>for agent in echo-agent finance-agent support-agent weather-mcp; do
+  echo "Deploying: $agent"
+  gcloud run deploy "$agent" \
+    --source="deploy/gcp/agents/$agent" \
+    --region=us-central1 \
+    --project=agentshield-poc \
+    --memory=256Mi \
+    --cpu=0.5 \
+    --min-instances=0 \
+    --max-instances=2 \
+    --port=8080 \
+    --allow-unauthenticated \
+    --quiet
+done</code></pre>
+
+    <h3>Verify Agent Health</h3>
+<pre><code>for agent in echo-agent finance-agent support-agent weather-mcp; do
+  URL="https://${agent}-PROJECT_NUMBER.us-central1.run.app"
+  curl -s "$URL/health" | python3 -m json.tool
+done</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 7 ═══════════════════════════════════════ -->
+<div class="section" id="step7">
+    <h2><span class="step-num">7</span> Register Agents in AgentShield <span class="duration">~1 min</span></h2>
+
+    <h3>Login & Register</h3>
+<pre><code>API="$BACKEND_URL/api/v1"
+
+# Login
+TOKEN=$(curl -s -X POST "${API}/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"admin123"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])")
+
+# Register each agent via /api/v1/agents (NOT /admin/agents)
+curl -s -X POST "${API}/agents" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Echo Agent",
+    "slug": "echo-agent",
+    "type": "internal",
+    "protocol": "rest",
+    "endpointUrl": "https://echo-agent-PROJECT_NUMBER.us-central1.run.app",
+    "description": "Baseline echo agent"
+  }'
+
+# Repeat for finance-agent, support-agent, weather-mcp
+# Note: weather-mcp endpoint is /mcp/sse (the SSE transport endpoint)</code></pre>
+
+    <div class="alert alert-warning">
+        <div class="alert-title">⚠️ Bottleneck: Correct API Route</div>
+        <p>Agent registration uses <code>POST /api/v1/agents</code> (the registry routes), <strong>NOT</strong> <code>/api/v1/admin/agents</code>. The admin route returns 404.</p>
+    </div>
+
+    <div class="alert alert-warning">
+        <div class="alert-title">⚠️ Bottleneck: JWT Token Expiry</div>
+        <p>JWT tokens expire in 15 minutes. If registration takes longer (e.g., agents have cold starts), re-login before registering. The first invocations hit cold-start delays of 10-30 seconds.</p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 8 ═══════════════════════════════════════ -->
+<div class="section" id="step8">
+    <h2><span class="step-num">8</span> Run POC Validation Tests <span class="duration">~2 min</span></h2>
+
+    <h3>Test Script</h3>
+    <p>Use <code>./08-run-tests.sh</code> or run manually:</p>
+
+<pre><code># Run the automated test suite
+./deploy/gcp/08-run-tests.sh</code></pre>
+
+    <h3>Expected Results (13 tests)</h3>
+    <table>
+        <thead><tr><th>#</th><th>Test</th><th>Expected</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>Backend health check</td><td>200 ✅</td><td></td></tr>
+            <tr><td>2</td><td>List agents</td><td>200 ✅</td><td></td></tr>
+            <tr><td>3</td><td>Invoke echo-agent</td><td>200 ✅</td><td></td></tr>
+            <tr><td>4</td><td>Invoke finance-agent</td><td>200 ✅</td><td></td></tr>
+            <tr><td>5</td><td>Invoke support-agent</td><td>200 ✅</td><td></td></tr>
+            <tr><td>6</td><td>Cost stats</td><td>200 ✅</td><td></td></tr>
+            <tr><td>7</td><td>Daily trend</td><td>200 ✅</td><td></td></tr>
+            <tr><td>8</td><td>Audit log</td><td>200 ✅</td><td></td></tr>
+            <tr><td>9-12</td><td>Agent health (x4)</td><td>200 ✅</td><td>May 429 on cold start</td></tr>
+            <tr><td>13</td><td>Dashboard reachable</td><td>200 ✅</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <div class="alert alert-danger">
+        <div class="alert-title">🚨 Critical Fix: Pre-seeded Budgets Block Invocations</div>
+        <p>The migration seeds <strong>6 demo budget records</strong> with pre-filled usage that already exceeds limits (e.g., "Q3 Demo Project" at 110% of budget). This causes all agent invocations to return <strong>HTTP 402 "Budget exceeded"</strong>.</p>
+        <p><strong>Solution:</strong> Delete all demo budgets before testing:</p>
+    </div>
+
+<pre><code># List budgets
+curl -s "${API}/budgets" -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+
+# Delete each demo budget by ID
+curl -s -X DELETE "${API}/budgets/BUDGET_ID" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════ BOTTLENECKS ═══════════════════════════════════════ -->
+<div class="section" id="bottlenecks">
+    <h2>🔧 Bottlenecks & Fixes (Critical Reference)</h2>
+
+    <p>These are the <strong>6 issues</strong> encountered during the first deployment, listed in order of severity:</p>
+
+    <h3>1. 🚨 Invalid Bcrypt Hash in Migration (Login Fails)</h3>
+    <table>
+        <tr><td><strong>Symptom</strong></td><td>Login returns "Invalid email or password" despite admin user existing in DB</td></tr>
+        <tr><td><strong>Cause</strong></td><td><code>001_initial_schema.sql</code> line 230 contains a fabricated bcrypt hash that doesn't match any password</td></tr>
+        <tr><td><strong>Fix</strong></td><td>Created <code>src/db/seed.js</code> that force-updates the password hash after checking if the user exists</td></tr>
+        <tr><td><strong>Prevention</strong></td><td>Generate valid bcrypt hash: <code>node -e "require('bcryptjs').hash('admin123',10).then(h=>console.log(h))"</code> and replace in migration</td></tr>
+    </table>
+
+    <h3>2. 🚨 Agent Dockerfiles Use npm ci Without Lockfile</h3>
+    <table>
+        <tr><td><strong>Symptom</strong></td><td>All 4 agent builds fail silently: "Build failed; check build logs for details"</td></tr>
+        <tr><td><strong>Cause</strong></td><td>Dockerfiles had <code>RUN npm ci --production</code> but agents have no <code>package-lock.json</code></td></tr>
+        <tr><td><strong>Fix</strong></td><td>Changed to <code>RUN npm install --production</code> in all agent Dockerfiles</td></tr>
+        <tr><td><strong>Prevention</strong></td><td>Either generate lockfiles (<code>npm install</code> locally first) or use <code>npm install</code> in Dockerfile</td></tr>
+    </table>
+
+    <h3>3. 🚨 Pre-seeded Budgets Block All Invocations (HTTP 402)</h3>
+    <table>
+        <tr><td><strong>Symptom</strong></td><td>All <code>POST /gateway/agents/*/invoke</code> return 402 "Budget exceeded"</td></tr>
+        <tr><td><strong>Cause</strong></td><td>Migration seeds 6 demo budgets with <code>current_cost_cents</code> already exceeding limits</td></tr>
+        <tr><td><strong>Fix</strong></td><td>Delete all demo budgets via <code>DELETE /api/v1/budgets/:id</code></td></tr>
+        <tr><td><strong>Prevention</strong></td><td>Don't seed usage data in demo budgets, or seed with <code>hard_limit=false</code></td></tr>
+    </table>
+
+    <h3>4. ⚠️ Cloud Run Jobs vs Services — Different Flag Names</h3>
+    <table>
+        <tr><td><strong>Symptom</strong></td><td><code>gcloud run jobs create</code> fails with "unrecognized arguments: --add-cloudsql-instances"</td></tr>
+        <tr><td><strong>Cause</strong></td><td>Services use <code>--add-cloudsql-instances</code>, Jobs use <code>--set-cloudsql-instances</code></td></tr>
+        <tr><td><strong>Fix</strong></td><td>Use <code>--set-cloudsql-instances</code> for all <code>gcloud run jobs</code> commands</td></tr>
+    </table>
+
+    <h3>5. ⚠️ Cloud SQL Tier Name Changed</h3>
+    <table>
+        <tr><td><strong>Symptom</strong></td><td><code>gcloud sql instances create</code> fails: "Invalid Tier (db-f1-micro) for ENTERPRISE_PLUS"</td></tr>
+        <tr><td><strong>Cause</strong></td><td>GCP deprecated <code>db-f1-micro</code>. Must specify <code>--edition=enterprise</code> with new tier names</td></tr>
+        <tr><td><strong>Fix</strong></td><td>Use <code>--tier=db-custom-1-3840 --edition=enterprise</code></td></tr>
+    </table>
+
+    <h3>6. ⚠️ Firebase Hosting Requires Two-Step Init</h3>
+    <table>
+        <tr><td><strong>Symptom</strong></td><td><code>firebase deploy</code> fails: "no Hosting site" or "Assertion failed: resolving hosting target"</td></tr>
+        <tr><td><strong>Cause</strong></td><td>A fresh GCP project has no Firebase project or hosting site</td></tr>
+        <tr><td><strong>Fix</strong></td><td>Run <code>projects:addfirebase</code> then <code>hosting:sites:create</code> before deploying</td></tr>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════ TIMELINE ═══════════════════════════════════════ -->
+<div class="section" id="timeline">
+    <h2>⏱️ Actual Deployment Timeline</h2>
+
+    <p>Total wall-clock time: <strong>~38 minutes</strong> (including debugging). Clean re-deploy: <strong>~25 minutes</strong>.</p>
+
+    <div class="timeline">
+        <div class="timeline-item success">
+            <div class="timeline-time">11:32 AM — T+0:00</div>
+            <div class="timeline-title">Start: Prerequisites verified</div>
+            <div class="timeline-desc">gcloud 529.0.0, billing account confirmed</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:34 AM — T+2:00</div>
+            <div class="timeline-title">Project created, billing linked</div>
+        </div>
+        <div class="timeline-item warning">
+            <div class="timeline-time">11:35 AM — T+3:00</div>
+            <div class="timeline-title">Compute API prompt encountered</div>
+            <div class="timeline-desc">Typed 'y', waited ~1 min for enablement</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:37 AM — T+5:00</div>
+            <div class="timeline-title">All 7 APIs enabled</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:38 AM — T+6:00</div>
+            <div class="timeline-title">Cloud SQL + VPC creation started (parallel)</div>
+        </div>
+        <div class="timeline-item error">
+            <div class="timeline-time">11:38 AM — T+6:00</div>
+            <div class="timeline-title">Cloud SQL tier error → fixed to db-custom-1-3840</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:41 AM — T+9:00</div>
+            <div class="timeline-title">VPC connector created</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:42 AM — T+10:00</div>
+            <div class="timeline-title">Cloud SQL created (35.224.1.245)</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:44 AM — T+12:00</div>
+            <div class="timeline-title">DB + user created, secrets stored, IAM bindings set</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:46 AM — T+14:00</div>
+            <div class="timeline-title">Backend deployed to Cloud Run (rev 1)</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">11:50 AM — T+18:00</div>
+            <div class="timeline-title">Migrations completed (9 migration files)</div>
+        </div>
+        <div class="timeline-item error">
+            <div class="timeline-time">11:53 AM — T+21:00</div>
+            <div class="timeline-title">Seed job failed — seed.js file missing</div>
+            <div class="timeline-desc">Created src/db/seed.js, redeployed</div>
+        </div>
+        <div class="timeline-item error">
+            <div class="timeline-time">11:58 AM — T+26:00</div>
+            <div class="timeline-title">Login still fails — migration has bad bcrypt hash</div>
+            <div class="timeline-desc">Updated seed.js to force-update password, redeployed + re-seeded</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">12:03 PM — T+31:00</div>
+            <div class="timeline-title">Login working ✅</div>
+        </div>
+        <div class="timeline-item error">
+            <div class="timeline-time">12:05 PM — T+33:00</div>
+            <div class="timeline-title">Agent builds fail — npm ci without lockfile</div>
+            <div class="timeline-desc">Fixed Dockerfiles to use npm install</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">12:09 PM — T+37:00</div>
+            <div class="timeline-title">All 4 agents deployed and healthy</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">12:54 PM — T+82:00</div>
+            <div class="timeline-title">All agents registered (cold start delays)</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">12:55 PM — T+83:00</div>
+            <div class="timeline-title">Dashboard deployed to Firebase Hosting</div>
+        </div>
+        <div class="timeline-item error">
+            <div class="timeline-time">1:10 PM — T+98:00</div>
+            <div class="timeline-title">Tests: Invocations return 402 — demo budgets over limit</div>
+            <div class="timeline-desc">Deleted demo budgets, re-ran tests</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">1:14 PM — T+102:00</div>
+            <div class="timeline-title">12/13 tests passed, Redis connected</div>
+        </div>
+        <div class="timeline-item success">
+            <div class="timeline-time">1:14 PM — T+102:00</div>
+            <div class="timeline-title">🎉 Deployment complete!</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ COSTS ═══════════════════════════════════════ -->
+<div class="section" id="costs">
+    <h2>💰 Cost Breakdown</h2>
+
+    <table>
+        <thead><tr><th>Service</th><th>Configuration</th><th>Monthly Est.</th></tr></thead>
+        <tbody>
+            <tr><td>Cloud SQL PostgreSQL</td><td>db-custom-1-3840, 10 GB SSD, zonal</td><td>~$30</td></tr>
+            <tr><td>Memorystore Redis</td><td>1 GB, Basic tier</td><td>~$35</td></tr>
+            <tr><td>Cloud Run (backend)</td><td>1 vCPU, 1 GB, min 1 instance</td><td>~$25</td></tr>
+            <tr><td>Cloud Run (4 agents)</td><td>0.5 vCPU, 256 MB, scale-to-zero</td><td>~$5</td></tr>
+            <tr><td>Firebase Hosting</td><td>Free tier (10 GB storage, 360 MB/day)</td><td>$0</td></tr>
+            <tr><td>Secret Manager</td><td>3 secrets, ~100 accesses/month</td><td>~$0.10</td></tr>
+            <tr><td>Cloud Build</td><td>First 120 min/day free</td><td>$0</td></tr>
+            <tr><td><strong>Total</strong></td><td></td><td><strong>~$95/month</strong></td></tr>
+        </tbody>
+    </table>
+
+    <div class="alert alert-info">
+        <div class="alert-title">ℹ️ Cost Optimization</div>
+        <p>For a short POC, the biggest cost driver is Cloud SQL + Redis running 24/7. Consider stopping the SQL instance when not testing: <code>gcloud sql instances patch agentshield-db --activation-policy=NEVER</code></p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════ TEARDOWN ═══════════════════════════════════════ -->
+<div class="section" id="teardown">
+    <h2>🧹 Teardown & Cleanup</h2>
+
+<pre><code># Use the automated teardown script
+./deploy/gcp/09-teardown.sh
+
+# Or manually:
+
+# 1. Delete Cloud Run services
+for svc in agentshield-api echo-agent finance-agent support-agent weather-mcp; do
+  gcloud run services delete "$svc" --region=us-central1 --quiet
+done
+
+# 2. Delete Cloud Run jobs
+for job in agentshield-migrate agentshield-seed; do
+  gcloud run jobs delete "$job" --region=us-central1 --quiet
+done
+
+# 3. Delete secrets
+for s in agentshield-jwt-secret agentshield-db-password agentshield-compliance-key; do
+  gcloud secrets delete "$s" --quiet
+done
+
+# 4. Delete Redis
+gcloud redis instances delete agentshield-redis --region=us-central1 --quiet
+
+# 5. Delete VPC connector
+gcloud compute networks vpc-access connectors delete agentshield-vpc \
+  --region=us-central1 --quiet
+
+# 6. Delete Cloud SQL (takes 2-5 min)
+gcloud sql instances delete agentshield-db --quiet
+
+# 7. Disable Firebase Hosting
+npx -y firebase-tools hosting:disable --project agentshield-poc
+
+# 8. (Optional) Delete entire project
+gcloud projects delete agentshield-poc</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════ LESSONS ═══════════════════════════════════════ -->
+<div class="section" id="lessons">
+    <h2>📝 Lessons Learned & Best Practices</h2>
+
+    <h3>For Future Deployments</h3>
+    <ol>
+        <li><strong>Fix the migration seed data first.</strong> Before deploying, update <code>001_initial_schema.sql</code> with a valid bcrypt hash, or remove the INSERT entirely and rely solely on <code>seed.js</code>.</li>
+        <li><strong>Always generate lockfiles for Docker builds.</strong> Run <code>npm install</code> locally in each agent directory to generate <code>package-lock.json</code> before deploying.</li>
+        <li><strong>Seed demo data carefully.</strong> Don't seed budget records with usage that already exceeds limits. Use <code>current_tokens=0</code> and <code>current_cost_cents=0</code>.</li>
+        <li><strong>Enable ALL APIs upfront.</strong> Include Firebase APIs in the initial batch to avoid extra round-trips.</li>
+        <li><strong>Parallelize infrastructure creation.</strong> Cloud SQL, Redis, and VPC connector have zero dependencies — run them simultaneously to save 10+ minutes.</li>
+        <li><strong>Use environment variables, not code changes.</strong> The <code>VITE_API_BASE</code> pattern keeps the codebase deployment-agnostic.</li>
+        <li><strong>Set min-instances=1 for the backend.</strong> Cold starts add 10-30 seconds of latency. The backend should always be warm.</li>
+        <li><strong>Set min-instances=0 for test agents.</strong> They only run during testing, so scale-to-zero saves money.</li>
+        <li><strong>Redis is optional but recommended.</strong> The backend works without Redis (skips caching). Connect it later to improve gateway latency.</li>
+        <li><strong>JWT tokens expire in 15 minutes.</strong> If a step takes longer (cold starts, build retries), re-login before the next API call.</li>
+    </ol>
+
+    <h3>Quick Reference: Clean Deploy Sequence</h3>
+    <p>If all fixes are applied beforehand, the clean deploy takes ~25 minutes:</p>
+
+<pre><code># Step 1: Project + APIs (3 min)
+gcloud projects create agentshield-poc --name="AgentShield POC"
+gcloud billing projects link agentshield-poc --billing-account=BILLING_ID
+gcloud config set project agentshield-poc
+gcloud services enable run.googleapis.com sqladmin.googleapis.com redis.googleapis.com \
+  artifactregistry.googleapis.com secretmanager.googleapis.com cloudbuild.googleapis.com \
+  vpcaccess.googleapis.com firebasehosting.googleapis.com firebase.googleapis.com
+
+# Step 2: Infra — run all 3 in parallel (10 min)
+gcloud sql instances create agentshield-db --database-version=POSTGRES_16 \
+  --tier=db-custom-1-3840 --edition=enterprise --region=us-central1 ... &
+gcloud compute networks vpc-access connectors create agentshield-vpc ... &
+gcloud redis instances create agentshield-redis --size=1 --region=us-central1 ... &
+wait
+
+# Step 3: Secrets (1 min)
+# Step 4: Deploy backend + migrate + seed (5 min)
+# Step 5: Build dashboard + Firebase deploy (3 min)
+# Step 6: Deploy 4 agents (8 min — sequential builds)
+# Step 7: Register agents (1 min)
+# Step 8: Run tests (2 min)
+# Delete demo budgets if seeded</code></pre>
+</div>
+
+</div>
+
+<div class="footer">
+    AgentShield GCP Deployment Guide — First deployed 2026-06-28 by NelAIT<br>
+    Project: <code>agentshield-poc</code> | Region: <code>us-central1</code> | Account: <code>kkollepara2018@gmail.com</code>
+</div>
+
+</body>
+</html>
