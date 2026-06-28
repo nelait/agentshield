@@ -822,10 +822,19 @@ class EvaluationService {
             conditions.push(`er.run_id = $${idx++}`);
             params.push(filters.run_id);
         }
+        if (filters.agent_id) {
+            conditions.push(`r.agent_id = $${idx++}`);
+            params.push(filters.agent_id);
+        }
+        if (filters.suite_id) {
+            conditions.push(`r.suite_id = $${idx++}`);
+            params.push(filters.suite_id);
+        }
 
         const { rows } = await db.query(`
             SELECT er.*, r.suite_id, r.agent_id, r.judge_model, r.eval_mode,
-                   s.name as suite_name, a.name as agent_name
+                   r.started_at as run_started_at, r.overall_score as run_overall_score, r.status as run_status,
+                   s.name as suite_name, a.name as agent_name, a.slug as agent_slug
             FROM eval_reviews er
             JOIN eval_runs r ON er.run_id = r.id
             JOIN eval_suites s ON r.suite_id = s.id

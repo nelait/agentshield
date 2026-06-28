@@ -9,11 +9,14 @@ const costService = require('../cost/service');
 const auditService = require('../audit/service');
 const settingsService = require('../settings/service');
 const evaluationService = require('../evaluation/service');
+const apiKeyService = require('../apikeys/service');
+const guardrailsService = require('../guardrails/service');
 const { RegistryService } = require('../registry/service');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const router = express.Router();
+
 
 // ============================================
 // AUTH ROUTES
@@ -221,6 +224,13 @@ router.put('/budgets/:id', requireRole('admin'), async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+router.delete('/budgets/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await costService.deleteBudget(req.params.id);
+        res.json({ success: true, message: 'Budget deleted' });
+    } catch (err) { next(err); }
+});
+
 router.get('/cost/report', async (req, res, next) => {
     try {
         const report = await costService.getUsageReport(req.query);
@@ -232,6 +242,42 @@ router.get('/cost/stats', async (req, res, next) => {
     try {
         const stats = await costService.getStats();
         res.json({ success: true, data: stats });
+    } catch (err) { next(err); }
+});
+
+router.get('/cost/daily', async (req, res, next) => {
+    try {
+        const days = parseInt(req.query.days) || 30;
+        const data = await costService.getDailyUsage(days);
+        res.json({ success: true, data });
+    } catch (err) { next(err); }
+});
+
+router.get('/cost/model-pricing', async (req, res, next) => {
+    try {
+        const pricing = costService.getModelPricing();
+        res.json({ success: true, data: pricing });
+    } catch (err) { next(err); }
+});
+
+router.get('/budgets/alerts', async (req, res, next) => {
+    try {
+        const alerts = await costService.getBudgetAlerts();
+        res.json({ success: true, data: alerts });
+    } catch (err) { next(err); }
+});
+
+router.get('/budgets/:id/history', async (req, res, next) => {
+    try {
+        const history = await costService.getBudgetHistory(req.params.id);
+        res.json({ success: true, data: history });
+    } catch (err) { next(err); }
+});
+
+router.get('/budgets/history/all', async (req, res, next) => {
+    try {
+        const history = await costService.getAllBudgetHistory(parseInt(req.query.limit) || 50);
+        res.json({ success: true, data: history });
     } catch (err) { next(err); }
 });
 
@@ -598,6 +644,10 @@ router.get('/settings/:category', async (req, res, next) => {
 router.put('/settings', requireRole('admin'), async (req, res, next) => {
     try {
         const setting = await settingsService.upsertSetting(req.body);
+        // Invalidate module cache immediately when module toggles change
+        if (req.body.category === 'modules') {
+            settingsService.invalidateModuleCache();
+        }
         res.json({ success: true, data: setting });
     } catch (err) { next(err); }
 });
@@ -789,4 +839,200 @@ router.get('/evaluations/personas', async (req, res, next) => {
         const personas = evaluationService.getPersonaTemplates();
         res.json({ success: true, data: personas });
     } catch (err) { next(err); }
+});
+
+// ============================================
+// GUARDRAILS ROUTES
+// ============================================
+router.post('/guardrails/profiles', requireRole('editor'), async (req, res, next) => {
+    try {
+        const profile = await guardrailsService.createProfile({ ...req.body, createdBy: req.user?.id });
+        res.status(201).json({ success: true, data: profile });
+    } catch (err) { next(err); }
+});
+
+router.get('/guardrails/profiles', async (req, res, next) => {
+    try {
+        const profiles = await guardrailsService.listProfiles();
+        res.json({ success: true, data: profiles });
+    } catch (err) { next(err); }
+});
+
+router.get('/guardrails/profiles/:id', async (req, res, next) => {
+    try {
+        const profile = await guardrailsService.getProfile(req.params.id);
+        res.json({ success: true, data: profile });
+    } catch (err) { next(err); }
+});
+
+router.put('/guardrails/profiles/:id', requireRole('editor'), async (req, res, next) => {
+    try {
+        const profile = await guardrailsService.updateProfile(req.params.id, req.body);
+        res.json({ success: true, data: profile });
+    } catch (err) { next(err); }
+});
+
+router.delete('/guardrails/profiles/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await guardrailsService.deleteProfile(req.params.id);
+        res.json({ success: true, message: 'Guardrail profile deleted' });
+    } catch (err) { next(err); }
+});
+
+// Guardrail Rules
+router.post('/guardrails/profiles/:id/rules', requireRole('editor'), async (req, res, next) => {
+    try {
+        const rule = await guardrailsService.addRule(req.params.id, req.body);
+        res.status(201).json({ success: true, data: rule });
+    } catch (err) { next(err); }
+});
+
+router.put('/guardrails/rules/:id', requireRole('editor'), async (req, res, next) => {
+    try {
+        const rule = await guardrailsService.updateRule(req.params.id, req.body);
+        res.json({ success: true, data: rule });
+    } catch (err) { next(err); }
+});
+
+router.delete('/guardrails/rules/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await guardrailsService.deleteRule(req.params.id);
+        res.json({ success: true, message: 'Guardrail rule deleted' });
+    } catch (err) { next(err); }
+});
+
+// Agent Assignment
+router.post('/guardrails/assign', requireRole('editor'), async (req, res, next) => {
+    try {
+        const result = await guardrailsService.assignToAgent(req.body.agentId, req.body.profileId, req.user?.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.delete('/guardrails/assign', requireRole('editor'), async (req, res, next) => {
+    try {
+        const result = await guardrailsService.unassignFromAgent(req.body.agentId, req.body.profileId);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.get('/guardrails/agents/:agentId', async (req, res, next) => {
+    try {
+        const guardrails = await guardrailsService.getAgentGuardrails(req.params.agentId);
+        res.json({ success: true, data: guardrails });
+    } catch (err) { next(err); }
+});
+
+// Test Runner
+router.post('/guardrails/profiles/:id/test', requireRole('editor'), async (req, res, next) => {
+    try {
+        const { testCases, agentId } = req.body;
+        if (!testCases || !Array.isArray(testCases) || testCases.length === 0) {
+            return res.status(400).json({ success: false, error: 'testCases array is required' });
+        }
+        const result = await guardrailsService.runGuardrailTests(
+            req.params.id, testCases, agentId || null, req.user?.id
+        );
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.get('/guardrails/test-runs', async (req, res, next) => {
+    try {
+        const runs = await guardrailsService.getTestRuns(req.query.profileId || null, parseInt(req.query.limit) || 20);
+        res.json({ success: true, data: runs });
+    } catch (err) { next(err); }
+});
+
+router.get('/guardrails/test-runs/:id', async (req, res, next) => {
+    try {
+        const run = await guardrailsService.getTestRun(req.params.id);
+        res.json({ success: true, data: run });
+    } catch (err) { next(err); }
+});
+
+router.get('/guardrails/stats', async (req, res, next) => {
+    try {
+        const stats = await guardrailsService.getStats();
+        res.json({ success: true, data: stats });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// API KEY MANAGEMENT ROUTES
+// ============================================
+router.post('/api-keys', requireRole('admin'), async (req, res, next) => {
+    try {
+        const { name, role, scopes, expiresAt } = req.body;
+        if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
+        const key = await apiKeyService.createKey({
+            name,
+            ownerId: req.user?.id,
+            role: role || 'viewer',
+            scopes: scopes || ['policy:check'],
+            expiresAt: expiresAt || null,
+        });
+        res.status(201).json({ success: true, data: key });
+    } catch (err) { next(err); }
+});
+
+router.get('/api-keys', requireRole('admin'), async (req, res, next) => {
+    try {
+        const keys = await apiKeyService.listKeys();
+        res.json({ success: true, data: keys });
+    } catch (err) { next(err); }
+});
+
+router.delete('/api-keys/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await apiKeyService.revokeKey(req.params.id);
+        res.json({ success: true, message: 'API key revoked' });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// OBSERVABILITY ROUTES
+// ============================================
+router.get('/observability/health', requireRole('admin'), async (req, res) => {
+    try {
+        const otelConfig = {
+            serviceName: process.env.OTEL_SERVICE_NAME || 'agentshield',
+            serviceVersion: '0.1.0',
+            exporterEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || null,
+            exporterType: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ? 'otlp' : 'console',
+            samplingRate: parseFloat(process.env.OTEL_TRACES_SAMPLER_ARG || '1.0'),
+            environment: process.env.NODE_ENV || 'development',
+        };
+
+        // Check if OTLP endpoint is reachable
+        // OTLP collectors only accept POST — a 200, 400, or 405 means the endpoint is up
+        let exporterHealthy = false;
+        if (otelConfig.exporterEndpoint) {
+            try {
+                const axios = require('axios');
+                const resp = await axios.post(
+                    `${otelConfig.exporterEndpoint}/v1/traces`,
+                    JSON.stringify({ resourceSpans: [] }),
+                    { timeout: 3000, headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
+                );
+                // Any response (even 400/405) means the collector is reachable
+                exporterHealthy = resp.status < 500;
+            } catch {
+                exporterHealthy = false;
+            }
+        } else {
+            exporterHealthy = true; // Console exporter is always healthy
+        }
+
+        res.json({
+            success: true,
+            data: {
+                ...otelConfig,
+                exporterHealthy,
+                uptime: process.uptime(),
+            },
+        });
+    } catch (err) {
+        res.json({ success: true, data: { exporterHealthy: false, error: err.message } });
+    }
 });

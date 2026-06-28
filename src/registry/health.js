@@ -83,6 +83,23 @@ class HealthChecker {
         const url = agent.health_check_url || agent.endpoint_url;
 
         try {
+            // MCP agents use SSE — plain GET will hang. Use MCP-aware health check.
+            const protocol = agent.protocol || '';
+            const isMcpEndpoint = protocol === 'mcp' || url.includes('/mcp/sse');
+
+            if (isMcpEndpoint) {
+                const { checkMcpHealth } = require('../gateway/mcp-client');
+                const healthy = await checkMcpHealth(url, config.healthCheck.timeoutMs);
+                const status = healthy ? 'healthy' : 'degraded';
+                const failures = healthy ? 0 : (agent.consecutive_failures || 0) + 1;
+                const finalStatus = failures >= config.healthCheck.unhealthyThreshold ? 'unhealthy' : status;
+                await RegistryService.updateHealthStatus(agent.id, finalStatus, failures);
+                if (finalStatus === 'unhealthy') {
+                    logger.warn(`Agent "${agent.name}" (${agent.slug}) marked unhealthy after ${failures} consecutive failures`);
+                }
+                return finalStatus;
+            }
+
             const response = await axios.get(url, {
                 timeout: config.healthCheck.timeoutMs,
                 validateStatus: (status) => status < 500,

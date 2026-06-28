@@ -2,39 +2,113 @@ const db = require('../db');
 const logger = require('../config/logger');
 const { AppError } = require('../registry/service');
 
+// ============================================
+// MODEL PRICING TABLE (cost per 1M tokens, in cents)
+// Used to auto-estimate cost when the upstream agent
+// does not return cost_cents in its usage response.
+// ============================================
+const MODEL_PRICING = {
+    // OpenAI
+    'gpt-4o':             { input: 250,  output: 1000 },
+    'gpt-4o-mini':        { input: 15,   output: 60   },
+    'gpt-4-turbo':        { input: 1000, output: 3000 },
+    'gpt-4':              { input: 3000, output: 6000 },
+    'gpt-3.5-turbo':      { input: 50,   output: 150  },
+    'o1':                 { input: 1500, output: 6000 },
+    'o1-mini':            { input: 300,  output: 1200 },
+    'o3-mini':            { input: 110,  output: 440  },
+
+    // Anthropic
+    'claude-sonnet-4-20250514':  { input: 300,  output: 1500 },
+    'claude-3-5-sonnet-20241022': { input: 300,  output: 1500 },
+    'claude-3-5-haiku-20241022': { input: 80,   output: 400  },
+    'claude-3-opus-20240229':    { input: 1500, output: 7500 },
+
+    // Google
+    'gemini-2.5-pro':     { input: 125,  output: 1000 },
+    'gemini-2.5-flash':   { input: 15,   output: 60   },
+    'gemini-2.0-flash':   { input: 10,   output: 40   },
+    'gemini-1.5-pro':     { input: 125,  output: 500  },
+    'gemini-1.5-flash':   { input: 7.5,  output: 30   },
+
+    // Meta / Open-source (typical hosted pricing)
+    'llama-3.1-70b':      { input: 88,   output: 88   },
+    'llama-3.1-8b':       { input: 18,   output: 18   },
+    'mixtral-8x7b':       { input: 24,   output: 24   },
+};
+
 class CostService {
     /**
-     * Record token usage for a request
+     * Estimate cost in cents from token counts and model name.
+     * Uses the MODEL_PRICING lookup table. Falls back to 0 if model unknown.
+     */
+    estimateCost(modelName, inputTokens, outputTokens) {
+        if (!modelName) return 0;
+
+        // Try exact match first, then partial match
+        const key = Object.keys(MODEL_PRICING).find(k =>
+            modelName === k || modelName.startsWith(k) || modelName.includes(k)
+        );
+        if (!key) return 0;
+
+        const pricing = MODEL_PRICING[key];
+        // Pricing is per 1M tokens, convert to per-token then to cents
+        const inputCost = (inputTokens || 0) * pricing.input / 1000000;
+        const outputCost = (outputTokens || 0) * pricing.output / 1000000;
+        return Math.round(inputCost + outputCost);
+    }
+
+    /**
+     * Get the model pricing table for display in the admin UI.
+     */
+    getModelPricing() {
+        return Object.entries(MODEL_PRICING).map(([model, pricing]) => ({
+            model,
+            inputPer1M: pricing.input,
+            outputPer1M: pricing.output,
+        }));
+    }
+
+    /**
+     * Record token usage for a request.
+     * Auto-estimates cost if not provided by the upstream agent.
      */
     async recordUsage(usageData) {
         const {
             traceId, agentId, workflowId, userId,
+            teamId, department,
             inputTokens, outputTokens, costCents, modelName,
         } = usageData;
 
         const totalTokens = (inputTokens || 0) + (outputTokens || 0);
+
+        // Auto-estimate cost if upstream didn't provide it
+        const finalCostCents = costCents > 0
+            ? costCents
+            : this.estimateCost(modelName, inputTokens, outputTokens);
 
         // Store the record
         await db.query(
             `INSERT INTO cost_records (trace_id, agent_id, workflow_id, user_id, input_tokens, output_tokens, total_tokens, cost_cents, model_name)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [traceId, agentId || null, workflowId || null, userId || null,
-                inputTokens || 0, outputTokens || 0, totalTokens, costCents || 0, modelName || null]
+                inputTokens || 0, outputTokens || 0, totalTokens, finalCostCents, modelName || null]
         );
 
-        // Update budget counters
-        await this._updateBudgets(userId, totalTokens, costCents || 0);
+        // Update budget counters for all matching scopes (including agent-scoped budgets)
+        await this._updateBudgets({ userId, teamId, department, agentId }, totalTokens, finalCostCents);
     }
 
     /**
      * Check if a request is within budget
      * Returns { allowed: boolean, reason: string, budget: object|null }
      */
-    async checkBudget(userId, teamId, departmentId) {
+    async checkBudget(userId, teamId, departmentId, agentId) {
         const scopes = [];
         if (userId) scopes.push({ type: 'user', id: userId });
         if (teamId) scopes.push({ type: 'team', id: teamId });
         if (departmentId) scopes.push({ type: 'department', id: departmentId });
+        if (agentId) scopes.push({ type: 'agent', id: agentId });
         scopes.push({ type: 'global', id: 'global' });
 
         for (const scope of scopes) {
@@ -48,7 +122,7 @@ class CostService {
             for (const budget of rows) {
                 // Check if period has expired, reset if so
                 if (this._isPeriodExpired(budget)) {
-                    await this._resetBudget(budget.id);
+                    await this._archiveAndResetBudget(budget);
                     continue;
                 }
 
@@ -88,18 +162,29 @@ class CostService {
     }
 
     /**
-     * Update budget counters after a request
+     * Update budget counters after a request.
+     * Increments ALL matching budget scopes: user, team, department, agent, and global.
      */
-    async _updateBudgets(userId, tokens, costCents) {
-        if (!userId) return;
+    async _updateBudgets(userContext, tokens, costCents) {
+        const { userId, teamId, department, agentId } = userContext || {};
+
+        // Collect all scope IDs that should be updated
+        const scopeIds = [];
+        if (userId) scopeIds.push(userId);
+        if (teamId) scopeIds.push(teamId);
+        if (department) scopeIds.push(department);
+        if (agentId) scopeIds.push(agentId);
+        scopeIds.push('global'); // Always update global budgets
+
+        if (scopeIds.length === 0) return;
 
         await db.query(
             `UPDATE budgets SET
         current_tokens = current_tokens + $1,
         current_cost_cents = current_cost_cents + $2,
         updated_at = NOW()
-       WHERE scope_id = $3 AND is_active = true`,
-            [tokens, costCents, userId]
+       WHERE scope_id = ANY($3) AND is_active = true`,
+            [tokens, costCents, scopeIds]
         );
     }
 
@@ -122,13 +207,29 @@ class CostService {
     }
 
     /**
-     * Reset a budget for a new period
+     * Archive a budget period's data before resetting.
+     * Stores the snapshot in budget_history so historical data is not lost.
      */
-    async _resetBudget(budgetId) {
+    async _archiveAndResetBudget(budget) {
+        // Archive the current period to budget_history
+        try {
+            await db.query(
+                `INSERT INTO budget_history (budget_id, budget_name, scope_type, scope_id, period, period_start, period_end, final_tokens, final_cost_cents, token_limit, cost_limit_cents)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10)`,
+                [budget.id, budget.name, budget.scope_type, budget.scope_id, budget.period,
+                    budget.period_start, budget.current_tokens || 0, budget.current_cost_cents || 0,
+                    budget.token_limit, budget.cost_limit_cents]
+            );
+        } catch (err) {
+            // If budget_history table doesn't exist yet, just log and continue
+            logger.warn('Could not archive budget period (table may not exist):', err.message);
+        }
+
+        // Reset the budget
         await db.query(
             `UPDATE budgets SET current_tokens = 0, current_cost_cents = 0, period_start = NOW(), updated_at = NOW()
        WHERE id = $1`,
-            [budgetId]
+            [budget.id]
         );
     }
 
@@ -141,7 +242,8 @@ class CostService {
             `INSERT INTO budgets (name, scope_type, scope_id, token_limit, cost_limit_cents, period, warn_threshold, hard_limit)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-            [data.name, data.scopeType, data.scopeId, data.tokenLimit || null,
+            [data.name, data.scopeType, data.scopeId || (data.scopeType === 'global' ? 'global' : data.scopeId),
+            data.tokenLimit || null,
             data.costLimitCents || null, data.period, data.warnThreshold || 0.80,
             data.hardLimit !== false]
         );
@@ -177,6 +279,14 @@ class CostService {
         return result.rows[0];
     }
 
+    async deleteBudget(id) {
+        const result = await db.query('DELETE FROM budgets WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+            throw new AppError('Budget not found', 404);
+        }
+        return result.rows[0];
+    }
+
     async getUsageReport(filters = {}) {
         const conditions = ['1=1'];
         const params = [];
@@ -206,6 +316,26 @@ class CostService {
         return result.rows;
     }
 
+    /**
+     * Get daily token/cost usage for the last N days (time-series data).
+     */
+    async getDailyUsage(days = 30) {
+        const result = await db.query(`
+      SELECT
+        DATE(recorded_at) as date,
+        SUM(total_tokens) as total_tokens,
+        SUM(input_tokens) as input_tokens,
+        SUM(output_tokens) as output_tokens,
+        SUM(cost_cents) as cost_cents,
+        COUNT(*) as request_count
+      FROM cost_records
+      WHERE recorded_at >= NOW() - INTERVAL '1 day' * $1
+      GROUP BY DATE(recorded_at)
+      ORDER BY date ASC
+    `, [days]);
+        return result.rows;
+    }
+
     async getStats() {
         const result = await db.query(`
       SELECT
@@ -217,6 +347,56 @@ class CostService {
       FROM cost_records
     `);
         return result.rows[0];
+    }
+
+    /**
+     * Get budgets that are at or above their warn threshold.
+     * Used for the alert banners on the frontend.
+     */
+    async getBudgetAlerts() {
+        const result = await db.query(`
+      SELECT * FROM budgets
+      WHERE is_active = true
+        AND (
+          (token_limit IS NOT NULL AND token_limit > 0 AND current_tokens::float / token_limit >= warn_threshold)
+          OR
+          (cost_limit_cents IS NOT NULL AND cost_limit_cents > 0 AND current_cost_cents::float / cost_limit_cents >= warn_threshold)
+        )
+      ORDER BY
+        CASE WHEN token_limit > 0 THEN current_tokens::float / token_limit ELSE 0 END DESC
+    `);
+        return result.rows;
+    }
+
+    /**
+     * Get archived budget period history for a given budget.
+     */
+    async getBudgetHistory(budgetId) {
+        try {
+            const result = await db.query(
+                `SELECT * FROM budget_history WHERE budget_id = $1 ORDER BY period_end DESC LIMIT 24`,
+                [budgetId]
+            );
+            return result.rows;
+        } catch {
+            // Table may not exist yet
+            return [];
+        }
+    }
+
+    /**
+     * Get all budget history entries (global overview).
+     */
+    async getAllBudgetHistory(limit = 50) {
+        try {
+            const result = await db.query(
+                `SELECT * FROM budget_history ORDER BY period_end DESC LIMIT $1`,
+                [limit]
+            );
+            return result.rows;
+        } catch {
+            return [];
+        }
     }
 }
 

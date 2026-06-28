@@ -1,3 +1,6 @@
+// OTel — must initialize before all other imports for auto-instrumentation
+const { shutdown: otelShutdown } = require('./config/tracing');
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -20,6 +23,7 @@ const {
     authenticate,
     policyEnforcer,
     budgetChecker,
+    guardrailEnforcer,
     complianceSampler,
     auditLogger,
     errorHandler,
@@ -44,12 +48,13 @@ app.use(morgan('short', {
 // ============================================
 // Firewall Middleware Chain (order matters!)
 // ============================================
-app.use(traceId);         // 1. Assign trace ID
-app.use(authenticate);    // 2. Validate JWT
-app.use(auditLogger);     // 3. Audit log (on response finish)
-app.use(policyEnforcer);  // 4. Enforce access policies
-app.use(budgetChecker);   // 5. Check cost/token budgets
-app.use(complianceSampler); // 6. Sample for compliance
+app.use(traceId);            // 1. Assign trace ID
+app.use(authenticate);       // 2. Validate JWT
+app.use(auditLogger);        // 3. Audit log (on response finish)
+app.use(policyEnforcer);     // 4. Enforce access policies
+app.use(budgetChecker);      // 5. Check cost/token budgets
+app.use(guardrailEnforcer);  // 5.5. Enforce guardrails on input
+app.use(complianceSampler);  // 6. Sample for compliance
 
 // ============================================
 // Health / Readiness Endpoints
@@ -127,6 +132,7 @@ async function start() {
         const shutdown = async (signal) => {
             logger.info(`${signal} received. Shutting down gracefully...`);
             healthChecker.stop();
+            await otelShutdown();
             await db.close();
             process.exit(0);
         };

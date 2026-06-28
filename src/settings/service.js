@@ -2,6 +2,64 @@ const db = require('../db');
 const logger = require('../config/logger');
 
 class SettingsService {
+    constructor() {
+        // Module feature-flag cache (refreshes every 30s)
+        this._moduleCache = null;
+        this._moduleCacheExpiry = 0;
+    }
+
+    // ============================================
+    // MODULE TOGGLE SYSTEM
+    // ============================================
+
+    /**
+     * Check if a module is enabled. Defaults to true (enabled) if no setting exists.
+     * Uses a 30-second in-memory cache to avoid DB queries on every gateway request.
+     */
+    async getModuleStatus(moduleKey) {
+        if (!this._moduleCache || Date.now() > this._moduleCacheExpiry) {
+            await this._refreshModuleCache();
+        }
+        const mod = this._moduleCache[moduleKey];
+        return mod?.enabled !== false; // Default: enabled
+    }
+
+    /**
+     * Get all module statuses for the dashboard.
+     */
+    async getAllModuleStatuses() {
+        if (!this._moduleCache || Date.now() > this._moduleCacheExpiry) {
+            await this._refreshModuleCache();
+        }
+        return { ...this._moduleCache };
+    }
+
+    /**
+     * Invalidate the module cache (called after settings updates).
+     */
+    invalidateModuleCache() {
+        this._moduleCache = null;
+        this._moduleCacheExpiry = 0;
+        logger.info('Module feature-flag cache invalidated');
+    }
+
+    async _refreshModuleCache() {
+        try {
+            const rows = await this.getSettings('modules');
+            this._moduleCache = {};
+            rows.forEach(r => {
+                const val = typeof r.value === 'string' ? JSON.parse(r.value) : r.value;
+                this._moduleCache[r.key] = val;
+            });
+            this._moduleCacheExpiry = Date.now() + 30000; // 30s TTL
+        } catch (err) {
+            logger.error('Failed to refresh module cache:', err);
+            // Fail-open: default all modules to enabled
+            this._moduleCache = {};
+            this._moduleCacheExpiry = Date.now() + 5000; // Retry sooner on error
+        }
+    }
+
     // ============================================
     // SETTINGS CRUD
     // ============================================
