@@ -47,7 +47,7 @@ class HealthChecker {
 
         try {
             const { rows: agents } = await db.query(
-                'SELECT id, name, slug, endpoint_url, health_check_url, consecutive_failures FROM agents WHERE is_active = true'
+                'SELECT id, name, slug, endpoint_url, health_check_url, protocol, consecutive_failures FROM agents WHERE is_active = true'
             );
 
             logger.debug(`Running health checks for ${agents.length} agent(s)`);
@@ -80,12 +80,19 @@ class HealthChecker {
      * Check a single agent's health
      */
     async checkAgent(agent) {
-        const url = agent.health_check_url || agent.endpoint_url;
+        // If no explicit health_check_url, derive one from endpoint_url
+        let url = agent.health_check_url;
+        if (!url) {
+            // Strip trailing path (e.g. /mcp/sse) and append /health
+            const base = new URL(agent.endpoint_url);
+            url = `${base.origin}/health`;
+        }
 
         try {
-            // MCP agents use SSE — plain GET will hang. Use MCP-aware health check.
-            const protocol = agent.protocol || '';
-            const isMcpEndpoint = protocol === 'mcp' || url.includes('/mcp/sse');
+            // Only use MCP SSE health check when the URL itself is an SSE endpoint.
+            // If we derived /health (or the user set an explicit health_check_url),
+            // use simple HTTP GET regardless of agent protocol.
+            const isMcpEndpoint = url.includes('/mcp/sse') || url.includes('/sse');
 
             if (isMcpEndpoint) {
                 const { checkMcpHealth } = require('../gateway/mcp-client');
