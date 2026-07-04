@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentShield — Compliance Module Test Cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --card: #111827;
+  --card-hover: #1a2332;
+  --border: #1e293b;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --green: #10b981;
+  --green-bg: #064e3b;
+  --red: #ef4444;
+  --red-bg: #450a0a;
+  --orange: #f59e0b;
+  --orange-bg: #451a03;
+  --blue: #3b82f6;
+  --blue-bg: #1e3a5f;
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.15);
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-bright: #f8fafc;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.7;
+}
+.container { max-width:1100px; margin:0 auto; padding:2rem; }
+
+/* ── Hero ────────────────────────── */
+.hero {
+  text-align:center;
+  padding:3rem 2rem;
+  background:linear-gradient(135deg, #1b1a4b 0%, #0f172a 50%, #0a2f2e 100%);
+  border-bottom:1px solid var(--border);
+  margin-bottom:2rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before {
+  content:'';
+  position:absolute;
+  top:-50%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:radial-gradient(circle at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(16,185,129,0.06) 0%, transparent 50%);
+  animation:pulseGlow 8s ease-in-out infinite alternate;
+}
+@keyframes pulseGlow {
+  0% { opacity:0.5; }
+  100% { opacity:1; }
+}
+.hero h1 {
+  font-size:2.5rem;
+  font-weight:800;
+  background:linear-gradient(135deg, var(--accent-light), var(--green));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:0.5rem;
+  position:relative;
+}
+.hero .subtitle { color:var(--text-dim); font-size:1.1rem; position:relative; }
+.hero .meta {
+  margin-top:1rem;
+  display:flex;
+  gap:1.5rem;
+  justify-content:center;
+  flex-wrap:wrap;
+  position:relative;
+}
+.hero .meta span { color:var(--text-dim); font-size:0.85rem; }
+.hero .meta span strong { color:var(--accent-light); }
+
+/* ── Table of Contents ───────────── */
+.toc {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem 2rem;
+  margin-bottom:2.5rem;
+}
+.toc h2 { font-size:1.2rem; color:var(--accent-light); margin-bottom:1rem; border:none; padding:0; }
+.toc-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:0.4rem; }
+.toc a {
+  color:var(--text);
+  text-decoration:none;
+  font-size:0.9rem;
+  padding:0.4rem 0.6rem;
+  border-radius:6px;
+  display:block;
+  transition:all 0.2s;
+}
+.toc a:hover { background:var(--card-hover); color:var(--accent-light); transform:translateX(4px); }
+.toc a .num { color:var(--accent); font-weight:700; margin-right:0.4rem; }
+
+/* ── Headings ────────────────────── */
+h2 {
+  font-size:1.6rem;
+  color:var(--text-bright);
+  margin:2.5rem 0 1rem;
+  padding-bottom:0.5rem;
+  border-bottom:2px solid var(--accent);
+}
+h3 { font-size:1.25rem; color:var(--accent-light); margin:1.8rem 0 0.8rem; }
+h4 { font-size:1.05rem; color:var(--cyan); margin:1.2rem 0 0.6rem; }
+p { margin-bottom:1rem; }
+ul, ol { margin:0.5rem 0 1rem 1.5rem; }
+li { margin-bottom:0.3rem; }
+
+/* ── Cards ───────────────────────── */
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem;
+  margin-bottom:1.5rem;
+  transition:border-color 0.3s;
+}
+.card:hover { border-color:var(--accent); }
+.card.green { border-left:4px solid var(--green); }
+.card.red { border-left:4px solid var(--red); }
+.card.orange { border-left:4px solid var(--orange); }
+.card.blue { border-left:4px solid var(--blue); }
+.card.purple { border-left:4px solid var(--purple); }
+.card-title { font-weight:700; font-size:1.1rem; margin-bottom:0.5rem; }
+
+/* ── Test Case Card ──────────────── */
+.test-case {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:0;
+  margin-bottom:1.5rem;
+  overflow:hidden;
+  transition:all 0.3s;
+}
+.test-case:hover { border-color: rgba(99,102,241,0.5); box-shadow:0 0 20px rgba(99,102,241,0.08); }
+.test-case-header {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:1rem 1.5rem;
+  background:rgba(99,102,241,0.05);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.test-case-header:hover { background:rgba(99,102,241,0.1); }
+.tc-id {
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  font-size:0.75rem;
+  padding:0.25rem 0.6rem;
+  border-radius:6px;
+  white-space:nowrap;
+}
+.tc-title { font-weight:600; font-size:1rem; color:var(--text-bright); flex:1; }
+.tc-priority {
+  font-size:0.7rem;
+  font-weight:600;
+  padding:0.2rem 0.5rem;
+  border-radius:10px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.tc-priority.high { background:var(--red-bg); color:var(--red); }
+.tc-priority.medium { background:var(--orange-bg); color:var(--orange); }
+.tc-priority.low { background:var(--blue-bg); color:var(--blue); }
+.tc-chevron { color:var(--text-dim); font-size:1rem; transition:transform 0.3s; }
+.test-case.open .tc-chevron { transform:rotate(180deg); }
+.test-case-body { padding:1.5rem; display:none; }
+.test-case.open .test-case-body { display:block; }
+
+/* ── IO Tables ───────────────────── */
+.io-section { margin:1rem 0; }
+.io-label {
+  font-size:0.8rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--text-dim);
+  margin-bottom:0.5rem;
+}
+.io-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.io-table th {
+  background:rgba(99,102,241,0.1);
+  color:var(--accent-light);
+  font-weight:600;
+  text-align:left;
+  padding:0.6rem 1rem;
+  border:1px solid var(--border);
+  font-size:0.8rem;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.io-table td { padding:0.55rem 1rem; border:1px solid var(--border); vertical-align:top; }
+.io-table tr:nth-child(even) { background:rgba(99,102,241,0.03); }
+
+/* ── Code Blocks ─────────────────── */
+pre {
+  background:#0d1117;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:1rem 1.2rem;
+  overflow-x:auto;
+  margin:0.8rem 0 1.2rem;
+  font-size:0.83rem;
+  line-height:1.6;
+  position:relative;
+}
+code {
+  font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+  color:#e6edf3;
+}
+.inline-code {
+  background:#1e293b;
+  padding:0.15rem 0.45rem;
+  border-radius:4px;
+  font-size:0.83rem;
+  color:var(--cyan);
+  font-family:'JetBrains Mono','Fira Code',monospace;
+}
+
+/* ── Badges ──────────────────────── */
+.badge {
+  display:inline-block;
+  padding:0.15rem 0.6rem;
+  border-radius:20px;
+  font-size:0.75rem;
+  font-weight:600;
+}
+.badge.green { background:var(--green-bg); color:var(--green); }
+.badge.red { background:var(--red-bg); color:var(--red); }
+.badge.orange { background:var(--orange-bg); color:var(--orange); }
+.badge.blue { background:var(--blue-bg); color:var(--blue); }
+.badge.purple { background:var(--purple-bg); color:var(--purple); }
+
+/* ── Alerts ──────────────────────── */
+.alert { border-radius:8px; padding:1rem 1.2rem; margin:1rem 0; font-size:0.9rem; }
+.alert.info { background:rgba(59,130,246,0.1); border-left:4px solid var(--blue); }
+.alert.warn { background:rgba(245,158,11,0.1); border-left:4px solid var(--orange); }
+.alert.success { background:rgba(16,185,129,0.1); border-left:4px solid var(--green); }
+.alert.danger { background:rgba(239,68,68,0.1); border-left:4px solid var(--red); }
+.alert strong { display:block; margin-bottom:0.3rem; }
+
+/* ── Step List ───────────────────── */
+.steps { counter-reset:step; list-style:none; margin:1rem 0; padding:0; }
+.steps li {
+  counter-increment:step;
+  padding:0.6rem 0 0.6rem 3rem;
+  position:relative;
+  border-left:2px solid var(--border);
+  margin-left:1rem;
+}
+.steps li:last-child { border-left-color:transparent; }
+.steps li::before {
+  content:counter(step);
+  position:absolute;
+  left:-14px;
+  top:0.5rem;
+  width:26px;
+  height:26px;
+  background:var(--accent);
+  color:white;
+  font-size:0.75rem;
+  font-weight:700;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ── Verdict Badges ──────────────── */
+.verdict {
+  display:inline-flex;
+  align-items:center;
+  gap:0.3rem;
+  padding:0.2rem 0.7rem;
+  border-radius:6px;
+  font-size:0.8rem;
+  font-weight:600;
+}
+.verdict.pass { background:var(--green-bg); color:var(--green); }
+.verdict.fail { background:var(--red-bg); color:var(--red); }
+.verdict.warn { background:var(--orange-bg); color:var(--orange); }
+
+/* ── Summary Stats ───────────────── */
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:1rem;
+  margin:1.5rem 0;
+}
+.stat-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1.2rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+.stat-card .stat-num { font-size:2rem; font-weight:800; color:var(--accent-light); }
+.stat-card .stat-label { font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Copy Button ─────────────────── */
+.code-block { position:relative; }
+.copy-btn {
+  position:absolute;
+  top:0.5rem;
+  right:0.5rem;
+  background:var(--card);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  padding:0.3rem 0.6rem;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:0.72rem;
+  font-family:'Inter',sans-serif;
+  transition:all 0.2s;
+  z-index:1;
+}
+.copy-btn:hover { color:var(--accent-light); border-color:var(--accent); }
+
+/* ── Section Number ──────────────── */
+.section-num { color:var(--accent); font-weight:700; margin-right:0.5rem; }
+
+/* ── Framework Grid ──────────────── */
+.fw-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:1rem;
+  margin:1rem 0 1.5rem;
+}
+.fw-chip {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.fw-chip:hover { border-color:var(--accent); transform:translateY(-2px); }
+.fw-chip .fw-icon { font-size:1.5rem; margin-bottom:0.4rem; }
+.fw-chip .fw-name { font-size:0.85rem; font-weight:600; color:var(--text-bright); }
+.fw-chip .fw-desc { font-size:0.75rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Responsive ──────────────────── */
+@media(max-width:768px) {
+  .hero h1 { font-size:1.8rem; }
+  .toc-grid { grid-template-columns:1fr; }
+  .stats-grid { grid-template-columns:repeat(2, 1fr); }
+  .container { padding:1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ -->
+<!-- HERO                                    -->
+<!-- ════════════════════════════════════════ -->
+<div class="hero">
+  <h1>📋 Compliance Module — Test Cases</h1>
+  <p class="subtitle">Step-by-Step Testing Guide for Configs, Scans, History &amp; Compliance Rules</p>
+  <div class="meta">
+    <span>📅 <strong>July 2026</strong></span>
+    <span>🔖 <strong>v1.0</strong></span>
+    <span>📋 <strong>28 Test Cases</strong></span>
+    <span>📦 <strong>agentshield-dashboard</strong></span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════ -->
+<!-- DOCUMENT OVERVIEW                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="alert info">
+  <strong>📘 About This Document</strong>
+  This document provides comprehensive, repeatable test cases for the AgentShield <strong>Compliance</strong> module.
+  Each test case specifies exact inputs, step-by-step actions, and expected results.
+  Tests cover all 4 tabs: <strong>Configs</strong>, <strong>Scans</strong>, <strong>History</strong>, and <strong>Compliance Rules</strong>.
+  Tests can be executed via the <strong>Admin Dashboard UI</strong> or the <strong>REST API</strong>.
+</div>
+
+<!-- Test Summary Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-num">28</div>
+    <div class="stat-label">Total Test Cases</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">6</div>
+    <div class="stat-label">Test Sections</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">4</div>
+    <div class="stat-label">Frameworks</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">4</div>
+    <div class="stat-label">Module Tabs</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="toc">
+  <h2>📑 Table of Contents</h2>
+  <div class="toc-grid">
+    <a href="#s0"><span class="num">00</span> Prerequisites &amp; Setup</a>
+    <a href="#s1"><span class="num">01</span> Config Management (CRUD)</a>
+    <a href="#s2"><span class="num">02</span> Config Detail Panel</a>
+    <a href="#s3"><span class="num">03</span> Compliance Scans</a>
+    <a href="#s4"><span class="num">04</span> Scan History</a>
+    <a href="#s5"><span class="num">05</span> Compliance Rules (CRUD)</a>
+    <a href="#appendix"><span class="num">A</span> Framework Quick Reference</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 0 — PREREQUISITES                  -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s0"><span class="section-num">00</span> Prerequisites &amp; Setup</h2>
+
+<div class="card blue">
+  <div class="card-title">🔧 Environment Requirements</div>
+  <ul>
+    <li>AgentShield backend running (local <span class="inline-code">npm start</span> or deployed at GCP)</li>
+    <li>PostgreSQL with compliance migrations applied (<span class="inline-code">007_compliance.sql</span>, <span class="inline-code">012_compliance_rules.sql</span>)</li>
+    <li>At least one agent registered (e.g., <strong>GPT-4 Analyst</strong> or <strong>MCP Everything Server</strong>)</li>
+    <li>Logged in as <span class="badge blue">admin</span> or <span class="badge purple">editor</span> role</li>
+    <li>Dashboard accessible at <span class="inline-code">http://localhost:5174</span> or production URL</li>
+    <li>Compliance module enabled in <strong>Settings → Module Toggles</strong></li>
+  </ul>
+</div>
+
+<div class="alert warn">
+  <strong>⚠️ Before You Begin</strong>
+  Ensure the Compliance module is <strong>enabled</strong> in Settings → Module Toggles.
+  The module has 4 tabs: <strong>📋 Configs</strong>, <strong>🔍 Scans</strong>, <strong>📜 History</strong>, <strong>⚙️ Compliance Rules</strong>.
+  Seed data includes built-in rules for SOX, HIPAA, GDPR, and PCI-DSS.
+</div>
+
+<h3>Supported Compliance Frameworks</h3>
+<div class="fw-grid">
+  <div class="fw-chip">
+    <div class="fw-icon">📊</div>
+    <div class="fw-name">SOX</div>
+    <div class="fw-desc">Sarbanes-Oxley financial controls</div>
+  </div>
+  <div class="fw-chip">
+    <div class="fw-icon">🏥</div>
+    <div class="fw-name">HIPAA</div>
+    <div class="fw-desc">Healthcare data protection</div>
+  </div>
+  <div class="fw-chip">
+    <div class="fw-icon">🇪🇺</div>
+    <div class="fw-name">GDPR</div>
+    <div class="fw-desc">EU general data protection</div>
+  </div>
+  <div class="fw-chip">
+    <div class="fw-icon">💳</div>
+    <div class="fw-name">PCI-DSS</div>
+    <div class="fw-desc">Payment card industry security</div>
+  </div>
+</div>
+
+<h3>API Base URL</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Local development
+BASE_URL=http://localhost:3000/api/v1/admin
+
+# Production (GCP)
+BASE_URL=https://&lt;your-cloud-run-url&gt;/api/v1/admin</code></pre>
+</div>
+
+<h3>Authentication Header</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Get token via login
+curl -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"admin123"}'
+
+# Use token in subsequent requests
+AUTH="Authorization: Bearer &lt;your-jwt-token&gt;"</code></pre>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 1 — CONFIG MANAGEMENT              -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s1"><span class="section-num">01</span> Config Management (CRUD)</h2>
+
+<p>A <strong>Compliance Config</strong> defines what framework (SOX/HIPAA/GDPR/PCI-DSS) to check, which agent and workflow to target, the sample rate, and retention period. Configs are managed in the <strong>📋 Configs</strong> tab.</p>
+
+<!-- TC-C01 -->
+<div class="test-case open" id="tc-c01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-C01</span>
+    <span class="tc-title">Create a SOX Compliance Config (All Agents)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a new SOX compliance configuration targeting all agents.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Compliance</strong> in the sidebar.</li>
+      <li>Ensure the <strong>📋 Configs</strong> tab is active.</li>
+      <li>Click the <strong>"+ Add Config"</strong> button.</li>
+      <li>Fill in the form fields as shown in the input table below.</li>
+      <li>Leave <strong>Target Agent</strong> as "— All Agents —".</li>
+      <li>Leave <strong>Target Workflow</strong> as "— All Workflows —".</li>
+      <li>Click <strong>"Create"</strong>.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X POST $BASE_URL/compliance/configs \
+  -H "Content-Type: application/json" \
+  -H "$AUTH" \
+  -d '{
+    "name": "SOX Financial Audit - All Agents",
+    "framework": "sox",
+    "sampleRate": 0.10,
+    "retentionDays": 2190,
+    "appliesTo": { "agents": [], "workflows": [] }
+  }'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📥 Input</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Value</th><th>Notes</th></tr>
+        <tr><td>Config Name</td><td><span class="inline-code">SOX Financial Audit - All Agents</span></td><td>Descriptive name</td></tr>
+        <tr><td>Framework</td><td><span class="badge blue">SOX</span></td><td>Sarbanes-Oxley</td></tr>
+        <tr><td>Sample Rate (%)</td><td><span class="inline-code">10</span></td><td>10% of agent interactions sampled</td></tr>
+        <tr><td>Retention (days)</td><td><span class="inline-code">2190</span></td><td>6 years</td></tr>
+        <tr><td>Target Agent</td><td>— All Agents —</td><td>No specific agent selected</td></tr>
+        <tr><td>Target Workflow</td><td>— All Workflows —</td><td>No specific workflow selected</td></tr>
+      </table>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Modal closes</td><td>Yes, modal dismisses after save</td></tr>
+        <tr><td>Config appears in list</td><td>New card shows: name, <span class="badge blue">SOX</span> badge, Rate: 10%, Retention: 6y, Target: All agents</td></tr>
+        <tr><td>API response</td><td>HTTP 201 with config ID</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-C02 -->
+<div class="test-case" id="tc-c02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-C02</span>
+    <span class="tc-title">Create a HIPAA Config with Specific Agent</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a HIPAA config targeting a specific agent to verify single-select agent assignment.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Click <strong>"+ Add Config"</strong> in the Configs tab.</li>
+      <li>Enter name: <span class="inline-code">HIPAA Health Agent Check</span></li>
+      <li>Select Framework: <strong>HIPAA</strong>.</li>
+      <li>Set Sample Rate: <span class="inline-code">25</span>%.</li>
+      <li>Set Retention: <span class="inline-code">2555</span> days (7 years).</li>
+      <li>In <strong>Target Agent</strong>, select <strong>"GPT-4 Analyst"</strong> from the dropdown.</li>
+      <li>Leave Target Workflow as "— All Workflows —".</li>
+      <li>Click <strong>"Create"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📥 Input</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Value</th></tr>
+        <tr><td>Config Name</td><td><span class="inline-code">HIPAA Health Agent Check</span></td></tr>
+        <tr><td>Framework</td><td><span class="badge purple">HIPAA</span></td></tr>
+        <tr><td>Sample Rate</td><td>25%</td></tr>
+        <tr><td>Retention</td><td>2555 days (7 years)</td></tr>
+        <tr><td>Target Agent</td><td>GPT-4 Analyst (single select)</td></tr>
+        <tr><td>Target Workflow</td><td>— All Workflows —</td></tr>
+      </table>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Config card</td><td>Shows: <span class="badge purple">HIPAA</span>, Rate: 25%, Target: GPT-4 Analyst</td></tr>
+        <tr><td>Agent assignment</td><td>Only ONE agent is assigned (single select, not multi-select)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-C03 -->
+<div class="test-case" id="tc-c03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-C03</span>
+    <span class="tc-title">Create Config with Specific Workflow</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a GDPR config targeting a specific workflow to verify single-select workflow assignment.</p>
+
+    <ol class="steps">
+      <li>Click <strong>"+ Add Config"</strong>.</li>
+      <li>Enter name: <span class="inline-code">GDPR Data Processing Check</span></li>
+      <li>Select Framework: <strong>GDPR</strong>.</li>
+      <li>Set Sample Rate: <span class="inline-code">50</span>%.</li>
+      <li>Leave Target Agent as "— All Agents —".</li>
+      <li>Select a workflow from the <strong>Target Workflow</strong> dropdown.</li>
+      <li>Click <strong>"Create"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Config card</td><td>Shows <span class="badge blue">GDPR</span> badge with workflow name in Target</td></tr>
+        <tr><td>Workflow assignment</td><td>Only ONE workflow assigned (single select)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-C04 -->
+<div class="test-case" id="tc-c04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-C04</span>
+    <span class="tc-title">Create Config — Empty Name Validation</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Create button is disabled when no name is provided.</p>
+
+    <ol class="steps">
+      <li>Click <strong>"+ Add Config"</strong>.</li>
+      <li>Leave the <strong>Config Name</strong> field empty.</li>
+      <li>Observe the <strong>Create</strong> button.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Create button</td><td><span class="verdict fail">Disabled</span> — button should be grayed out and unclickable</td></tr>
+        <tr><td>No API call</td><td>No network request should be made</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-C05 -->
+<div class="test-case" id="tc-c05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-C05</span>
+    <span class="tc-title">Configs Tab — No Run Check or Upload Buttons</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that the Configs tab only shows config cards and detail panel — no Run Check or Upload buttons.</p>
+
+    <ol class="steps">
+      <li>Navigate to <strong>Compliance → 📋 Configs</strong> tab.</li>
+      <li>Look at each config card row.</li>
+      <li>Verify only the 👁️ eye icon is visible in the actions area.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Run Check button</td><td><span class="verdict fail">NOT present</span> — moved to Scans tab</td></tr>
+        <tr><td>Upload button</td><td><span class="verdict fail">NOT present</span> — moved to Scans tab</td></tr>
+        <tr><td>Expand chevron</td><td><span class="verdict fail">NOT present</span> — results display is in Scans/History</td></tr>
+        <tr><td>Eye icon (👁️)</td><td><span class="verdict pass">Present</span> — opens detail panel</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 2 — CONFIG DETAIL PANEL            -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s2"><span class="section-num">02</span> Config Detail Panel</h2>
+
+<p>Each config card has a <strong>👁️ eye icon</strong> that expands a detail panel showing all metadata.</p>
+
+<!-- TC-D01 -->
+<div class="test-case" id="tc-d01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-D01</span>
+    <span class="tc-title">View Config Details — All Fields Displayed</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the detail panel shows all configuration metadata correctly.</p>
+
+    <ol class="steps">
+      <li>Go to <strong>Compliance → 📋 Configs</strong> tab.</li>
+      <li>Click the <strong>👁️ eye icon</strong> on any config card.</li>
+      <li>Verify all fields in the detail panel.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Expected Display</th></tr>
+        <tr><td>Framework</td><td>Blue badge with framework name (e.g., <span class="badge blue">SOX</span>)</td></tr>
+        <tr><td>Sample Rate</td><td>Progress bar + percentage (e.g., "10%")</td></tr>
+        <tr><td>Retention Period</td><td>Days + years conversion (e.g., "2190 days (6 years)")</td></tr>
+        <tr><td>Target Agent</td><td>Green badge with agent name, or "All Agents" if none assigned</td></tr>
+        <tr><td>Target Workflow</td><td>Yellow badge with workflow name, or "All Workflows" if none assigned</td></tr>
+        <tr><td>Created</td><td>Readable timestamp (e.g., "7/3/2026, 4:30:00 PM")</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-D02 -->
+<div class="test-case" id="tc-d02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-D02</span>
+    <span class="tc-title">Toggle Detail Panel — Open/Close</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify clicking the eye icon toggles the detail panel open/closed.</p>
+
+    <ol class="steps">
+      <li>Click the <strong>👁️ eye icon</strong> on a config → panel opens.</li>
+      <li>Click the same <strong>👁️ eye icon</strong> again → panel closes.</li>
+      <li>Click eye on a <strong>different</strong> config → that config's panel opens.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>First click</td><td>Detail panel slides in with fade animation</td></tr>
+        <tr><td>Second click (same)</td><td>Panel collapses</td></tr>
+        <tr><td>Click different config</td><td>Previous panel closes, new one opens</td></tr>
+        <tr><td>Eye icon color</td><td>Active = accent purple; inactive = muted gray</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 3 — COMPLIANCE SCANS               -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s3"><span class="section-num">03</span> Compliance Scans</h2>
+
+<p>The <strong>🔍 Scans</strong> tab is the central place to run compliance checks. Select a config, optionally upload custom samples, and run the scan to see live results with per-rule pass/fail details.</p>
+
+<!-- TC-S01 -->
+<div class="test-case" id="tc-s01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S01</span>
+    <span class="tc-title">Run Scan — Select Config and Execute</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Run a compliance scan by selecting a config and clicking Run Scan.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Compliance → 🔍 Scans</strong> tab.</li>
+      <li>In the <strong>"Select Compliance Config"</strong> dropdown, pick a config (e.g., "mcpeverything (SOX)").</li>
+      <li>Verify the <strong>config summary bar</strong> appears showing framework badge, sample rate, target, and retention.</li>
+      <li>Click the <strong>"▶ Run Scan"</strong> button.</li>
+      <li>Wait for the scan to complete (loading spinner appears).</li>
+      <li>Verify the <strong>Scan Results</strong> card appears with results.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X POST $BASE_URL/compliance/configs/&lt;config-id&gt;/run \
+  -H "Content-Type: application/json" \
+  -H "$AUTH" \
+  -d '{ "samples": null }'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Loading state</td><td>⏳ spinner with "Running compliance scan..." message</td></tr>
+        <tr><td>Status banner</td><td>Shows ✅ PASSED, ❌ FAILED, or ⚠️ PARTIAL with colored background</td></tr>
+        <tr><td>Summary stats</td><td><strong>X</strong> passed, <strong>Y</strong> failed, total rules count, Source: "generated"</td></tr>
+        <tr><td>Per-rule table</td><td>Table with columns: Rule, Category, Severity, Result (Pass/Fail badge), Details</td></tr>
+        <tr><td>Clear Results button</td><td>Appears next to Run Scan after results load</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-S02 -->
+<div class="test-case" id="tc-s02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S02</span>
+    <span class="tc-title">Run Scan — No Config Selected (Validation)</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify error feedback when trying to run a scan without selecting a config.</p>
+
+    <ol class="steps">
+      <li>Go to <strong>🔍 Scans</strong> tab.</li>
+      <li>Leave the config dropdown at "— Select a config to scan —".</li>
+      <li>Observe the <strong>▶ Run Scan</strong> button state.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Run Scan button</td><td><span class="verdict fail">Disabled</span> — button is grayed out when no config is selected</td></tr>
+        <tr><td>No API call</td><td>No network request is made</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-S03 -->
+<div class="test-case" id="tc-s03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S03</span>
+    <span class="tc-title">Run Scan with Custom JSON Samples</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Run a compliance scan using custom test samples instead of auto-generated ones.</p>
+
+    <ol class="steps">
+      <li>Go to <strong>🔍 Scans</strong> tab and select a config.</li>
+      <li>Check the <strong>"Use custom test samples"</strong> checkbox.</li>
+      <li>A JSON textarea appears. Paste the following sample data:</li>
+    </ol>
+
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>[
+  {
+    "input": "Process payment of $5000 for account SSN 123-45-6789",
+    "context": "financial_transaction",
+    "description": "Payment with PII"
+  },
+  {
+    "input": "Summarize quarterly earnings for Q2 2026",
+    "context": "reporting",
+    "description": "Clean financial query"
+  }
+]</code></pre>
+    </div>
+
+    <ol class="steps" style="counter-reset:step 3;">
+      <li>Click <strong>"▶ Run Scan"</strong>.</li>
+      <li>Verify the results show "Source: uploaded" instead of "Source: generated".</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Sample source</td><td>Shows <strong>"Source: uploaded"</strong> in the results banner</td></tr>
+        <tr><td>Samples used section</td><td>Shows 2 samples with context badges ("financial_transaction", "reporting")</td></tr>
+        <tr><td>Agent invocation</td><td>Shows INPUT text matching the custom samples provided</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-S04 -->
+<div class="test-case" id="tc-s04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S04</span>
+    <span class="tc-title">Run Scan — Invalid JSON Samples Validation</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify proper error handling for malformed JSON input.</p>
+
+    <ol class="steps">
+      <li>Go to <strong>🔍 Scans</strong> and select a config.</li>
+      <li>Check <strong>"Use custom test samples"</strong>.</li>
+      <li>Enter invalid JSON: <span class="inline-code">{ not valid json }</span></li>
+      <li>Click <strong>"▶ Run Scan"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Alert message</td><td>Browser alert: "Invalid JSON. Please provide an array of sample objects."</td></tr>
+        <tr><td>No scan executed</td><td>No API call is made; no results shown</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-S05 -->
+<div class="test-case" id="tc-s05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S05</span>
+    <span class="tc-title">Scan Results — Per-Rule Details Inspection</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that scan results display individual rule evaluations correctly.</p>
+
+    <ol class="steps">
+      <li>After running a successful scan (TC-S01), inspect the results table.</li>
+      <li>Verify each row has: Rule name, Category, Severity badge, Pass/Fail badge, Details text.</li>
+      <li>Verify severity badges use correct colors: <span class="badge red">CRITICAL</span> = red, <span class="badge orange">HIGH</span> = yellow, <span class="badge blue">MEDIUM</span> = blue, <span class="badge green">LOW</span> = green.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result (SOX example)</div>
+      <table class="io-table">
+        <tr><th>Rule</th><th>Category</th><th>Severity</th><th>Expected Result</th></tr>
+        <tr><td>Financial Data Integrity</td><td>data_integrity</td><td><span class="badge red">CRITICAL</span></td><td><span class="verdict pass">✅ Pass</span> or <span class="verdict fail">❌ Fail</span></td></tr>
+        <tr><td>Segregation of Duties</td><td>access_control</td><td><span class="badge red">CRITICAL</span></td><td><span class="verdict pass">✅ Pass</span> or <span class="verdict fail">❌ Fail</span></td></tr>
+        <tr><td>Access Logging Completeness</td><td>audit</td><td><span class="badge orange">HIGH</span></td><td><span class="verdict pass">✅ Pass</span> or <span class="verdict fail">❌ Fail</span></td></tr>
+        <tr><td>PII in Financial Data</td><td>data_protection</td><td><span class="badge orange">HIGH</span></td><td><span class="verdict pass">✅ Pass</span> or <span class="verdict fail">❌ Fail</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-S06 -->
+<div class="test-case" id="tc-s06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S06</span>
+    <span class="tc-title">Scan Results — Agent Invocation Samples</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the samples used section displays agent invocation details.</p>
+
+    <ol class="steps">
+      <li>After a scan completes, scroll below the per-rule table.</li>
+      <li>Look for the <strong>"📝 Agent Invocation Results"</strong> section.</li>
+      <li>Verify each sample shows: context badge, connection status, latency, input text, and agent response.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Element</th><th>Expected</th></tr>
+        <tr><td>Agent reachability</td><td>🟢 Agent Reachable (green) or 🔴 Agent Unreachable (red)</td></tr>
+        <tr><td>Context badge</td><td>Blue badge (e.g., "financial_transaction", "general")</td></tr>
+        <tr><td>Connection status</td><td>✓ Connected (green) or ✗ Failed (red)</td></tr>
+        <tr><td>INPUT</td><td>Shows the sample input text used</td></tr>
+        <tr><td>AGENT RESPONSE / ERROR</td><td>Shows response text or error with appropriate coloring</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-S07 -->
+<div class="test-case" id="tc-s07">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S07</span>
+    <span class="tc-title">Clear Results Button</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Clear Results button resets the scan results display.</p>
+
+    <ol class="steps">
+      <li>Run a scan and wait for results.</li>
+      <li>Click the <strong>"Clear Results"</strong> button next to Run Scan.</li>
+      <li>Verify the Scan Results card disappears.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Results card</td><td>Removed from the page</td></tr>
+        <tr><td>Config selector</td><td>Still shows the previously selected config</td></tr>
+        <tr><td>Run Scan button</td><td>Ready to run again</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-S08 -->
+<div class="test-case" id="tc-s08">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-S08</span>
+    <span class="tc-title">Config Summary Bar Appears on Selection</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that selecting a config in the Scans tab shows a summary info bar.</p>
+
+    <ol class="steps">
+      <li>Go to <strong>🔍 Scans</strong> tab.</li>
+      <li>Select a config from the dropdown.</li>
+      <li>Inspect the summary bar that appears below the dropdown.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Element</th><th>Expected</th></tr>
+        <tr><td>Framework badge</td><td>Blue badge with framework name (SOX/HIPAA/GDPR/PCI-DSS)</td></tr>
+        <tr><td>Rate</td><td>Sample rate percentage (e.g., "Rate: 10%")</td></tr>
+        <tr><td>Target</td><td>Target agent/workflow or "All agents"</td></tr>
+        <tr><td>Retention</td><td>Retention period in years (e.g., "Retention: 6y")</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 4 — SCAN HISTORY                   -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s4"><span class="section-num">04</span> Scan History</h2>
+
+<p>The <strong>📜 History</strong> tab provides a cascading selection flow: first select a compliance config, then pick a specific run to drill into its detailed results.</p>
+
+<!-- TC-H01 -->
+<div class="test-case" id="tc-h01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H01</span>
+    <span class="tc-title">History Tab — Empty State</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the empty state display when no config is selected in the History tab.</p>
+
+    <ol class="steps">
+      <li>Navigate to <strong>Compliance → 📜 History</strong> tab.</li>
+      <li>Do NOT select any config — leave both dropdowns at defaults.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Empty state icon</td><td>📜 scroll emoji centered</td></tr>
+        <tr><td>Heading</td><td>"Select a compliance config to view its run history"</td></tr>
+        <tr><td>Guidance text</td><td>"Choose a configuration from the dropdown above, then select a specific run..."</td></tr>
+        <tr><td>Step 2 dropdown</td><td>Disabled with "— Select a run —" placeholder</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-H02 -->
+<div class="test-case" id="tc-h02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H02</span>
+    <span class="tc-title">Select Config — Load Available Runs</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that selecting a config fetches and displays its run history.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Go to <strong>📜 History</strong> tab.</li>
+      <li>In <strong>"Step 1: Select Compliance Config"</strong>, pick a config that has been scanned before.</li>
+      <li>Wait for the <strong>"Available Runs"</strong> card to appear below.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X GET "$BASE_URL/compliance/configs/&lt;config-id&gt;/checks" \
+  -H "$AUTH"</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Available Runs card</td><td>Shows card with "Available Runs (N)" heading</td></tr>
+        <tr><td>Each run row</td><td>Timestamp, framework badge, source, passed/failed counts, status badge</td></tr>
+        <tr><td>Clickable rows</td><td>Rows highlight on hover and are clickable</td></tr>
+        <tr><td>Step 2 dropdown</td><td>Populated with run entries (timestamp — STATUS (XP / YF))</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-H03 -->
+<div class="test-case" id="tc-h03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H03</span>
+    <span class="tc-title">Select Config — No Runs Found</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the "no runs" empty state for a config that has never been scanned.</p>
+
+    <ol class="steps">
+      <li>Create a new config (TC-C01) but do NOT run any scans on it.</li>
+      <li>Go to <strong>📜 History</strong> tab and select this newly created config.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Empty state icon</td><td>🔍 magnifying glass centered</td></tr>
+        <tr><td>Heading</td><td>"No runs found for this configuration"</td></tr>
+        <tr><td>Guidance</td><td>"Run a scan from the 🔍 Scans tab to create history."</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-H04 -->
+<div class="test-case" id="tc-h04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H04</span>
+    <span class="tc-title">Drill Into Run Details — Click a Run Row</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify clicking a run row shows detailed results for that specific run.</p>
+
+    <ol class="steps">
+      <li>In <strong>📜 History</strong>, select a config with existing runs (TC-H02).</li>
+      <li>Click on any run row in the <strong>"Available Runs"</strong> list.</li>
+      <li>Verify the <strong>"Run Details"</strong> card appears with full results.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Element</th><th>Expected</th></tr>
+        <tr><td>Run Details heading</td><td>"Run Details — [timestamp]"</td></tr>
+        <tr><td>← Back to runs button</td><td>Present in the card header</td></tr>
+        <tr><td>Status banner</td><td>Same format as Scans: passed/failed counts, total rules, source</td></tr>
+        <tr><td>Per-rule table</td><td>Complete rule-by-rule results with Pass/Fail badges</td></tr>
+        <tr><td>Step 2 dropdown</td><td>Auto-populated with the selected run's timestamp and status</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-H05 -->
+<div class="test-case" id="tc-h05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H05</span>
+    <span class="tc-title">Drill Into Run — Use Step 2 Dropdown</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Step 2 dropdown can also be used to select a specific run.</p>
+
+    <ol class="steps">
+      <li>In <strong>📜 History</strong>, select a config with multiple runs.</li>
+      <li>Instead of clicking a row, use the <strong>"Step 2: Select Run"</strong> dropdown.</li>
+      <li>Pick any run entry (shows timestamp — STATUS (XP / YF)).</li>
+      <li>Verify the Run Details card appears below.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Run details</td><td>Same detailed view as clicking the row (TC-H04)</td></tr>
+        <tr><td>Dropdown selection</td><td>Shows formatted entry: "7/3/2026, 4:48:58 PM — FAILED (6P / 2F)"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-H06 -->
+<div class="test-case" id="tc-h06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H06</span>
+    <span class="tc-title">Back to Runs — Navigate from Details</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the "← Back to runs" button returns to the runs list.</p>
+
+    <ol class="steps">
+      <li>Drill into a run's details (TC-H04).</li>
+      <li>Click the <strong>"← Back to runs"</strong> button in the Run Details header.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Run Details card</td><td>Removed</td></tr>
+        <tr><td>Available Runs list</td><td>Visible again with all runs listed</td></tr>
+        <tr><td>Step 2 dropdown</td><td>Reset to "— Select a run —"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-H07 -->
+<div class="test-case" id="tc-h07">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H07</span>
+    <span class="tc-title">Switch Config in History — Resets Run Selection</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify switching configs resets the run selection and loads fresh history.</p>
+
+    <ol class="steps">
+      <li>Select Config A in Step 1 → runs load.</li>
+      <li>Click a run to see details.</li>
+      <li>Now change Step 1 dropdown to <strong>Config B</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Run details</td><td>Previous run details are cleared</td></tr>
+        <tr><td>Step 2 dropdown</td><td>Reset and repopulated with Config B's runs</td></tr>
+        <tr><td>Available Runs</td><td>Shows Config B's runs (or "No runs found" if none)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 5 — COMPLIANCE RULES               -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s5"><span class="section-num">05</span> Compliance Rules (CRUD)</h2>
+
+<p>The <strong>⚙️ Compliance Rules</strong> tab manages framework-specific rules that are evaluated during scans. Rules are organized under SOX, HIPAA, GDPR, and PCI-DSS sub-tabs.</p>
+
+<!-- TC-R01 -->
+<div class="test-case" id="tc-r01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R01</span>
+    <span class="tc-title">View Built-in SOX Rules</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify built-in SOX rules are displayed with correct metadata.</p>
+
+    <ol class="steps">
+      <li>Navigate to <strong>Compliance → ⚙️ Compliance Rules</strong> tab.</li>
+      <li>Click the <strong>📊 SOX</strong> sub-tab (should be active by default).</li>
+      <li>Inspect the rules list.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Column</th><th>Expected Content</th></tr>
+        <tr><td>Rule ID</td><td>Code-formatted IDs (e.g., <span class="inline-code">sox-1</span>, <span class="inline-code">sox-2</span>)</td></tr>
+        <tr><td>Name</td><td>Rule name (e.g., "Financial Data Integrity") + description below</td></tr>
+        <tr><td>Category</td><td>Category text (data_integrity, access_control, audit, etc.)</td></tr>
+        <tr><td>Severity</td><td>Colored badges: <span class="badge red">CRITICAL</span>, <span class="badge orange">HIGH</span>, <span class="badge blue">MEDIUM</span></td></tr>
+        <tr><td>Type</td><td><span class="badge blue">Built-in</span> for seed rules, <span class="badge green">Custom</span> for user-created</td></tr>
+        <tr><td>Enabled toggle</td><td>Toggle switch (purple = on, gray = off)</td></tr>
+        <tr><td>Footer</td><td>"X of Y rules enabled • Built-in rules can be disabled but not deleted"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R02 -->
+<div class="test-case" id="tc-r02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R02</span>
+    <span class="tc-title">Create Custom Compliance Rule</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a new custom rule with sample data for the current framework.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>In the <strong>⚙️ Compliance Rules</strong> tab, select the <strong>SOX</strong> sub-tab.</li>
+      <li>Click <strong>"+ Add Rule"</strong>.</li>
+      <li>Fill in the form as shown below.</li>
+      <li>Add PASS and FAIL example data in the Sample Data section.</li>
+      <li>Click <strong>"Create Rule"</strong>.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X PUT $BASE_URL/compliance/rules \
+  -H "Content-Type: application/json" \
+  -H "$AUTH" \
+  -d '{
+    "framework": "sox",
+    "name": "Key Rotation Policy",
+    "description": "Verify API keys are rotated every 90 days",
+    "category": "key_management",
+    "severity": "critical",
+    "isEnabled": true,
+    "evaluationConfig": {
+      "samples": {
+        "pass": {
+          "input": "Show last API key rotation dates",
+          "output": "All keys rotated within 90-day window"
+        },
+        "fail": {
+          "input": "List API keys older than 90 days",
+          "output": "WARNING: 3 keys exceed 90-day rotation policy"
+        }
+      }
+    }
+  }'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📥 Input</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Value</th></tr>
+        <tr><td>Rule Name</td><td><span class="inline-code">Key Rotation Policy</span></td></tr>
+        <tr><td>Description</td><td>Verify API keys are rotated every 90 days</td></tr>
+        <tr><td>Category</td><td><span class="inline-code">key_management</span></td></tr>
+        <tr><td>Severity</td><td>Critical</td></tr>
+        <tr><td>PASS Input</td><td>Show last API key rotation dates</td></tr>
+        <tr><td>PASS Output</td><td>All keys rotated within 90-day window</td></tr>
+        <tr><td>FAIL Input</td><td>List API keys older than 90 days</td></tr>
+        <tr><td>FAIL Output</td><td>WARNING: 3 keys exceed 90-day rotation policy</td></tr>
+      </table>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>New rule appears</td><td>Shows in the SOX rules list with <span class="badge green">Custom</span> type badge</td></tr>
+        <tr><td>Rule ID</td><td>Auto-generated (e.g., <span class="inline-code">sox-custom-1783...</span>)</td></tr>
+        <tr><td>Severity</td><td><span class="badge red">CRITICAL</span></td></tr>
+        <tr><td>Enabled</td><td>Toggle is ON (purple)</td></tr>
+        <tr><td>Expandable</td><td>Click row shows PASS/FAIL sample data</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R03 -->
+<div class="test-case" id="tc-r03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R03</span>
+    <span class="tc-title">View Rule Sample Data (Expand Row)</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify rule rows with sample data can be expanded to show PASS/FAIL examples.</p>
+
+    <ol class="steps">
+      <li>In the rules list, find a rule with sample data (has a ▼ chevron).</li>
+      <li>Click on the rule row to expand it.</li>
+      <li>Verify the PASS and FAIL panels display correctly.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Panel</th><th>Expected Display</th></tr>
+        <tr><td>PASS Example</td><td>Green-bordered card with ✅ icon, Input/Output sections in green-tinted code blocks</td></tr>
+        <tr><td>FAIL Example</td><td>Red-bordered card with ❌ icon, Input/Output sections in red-tinted code blocks</td></tr>
+        <tr><td>Layout</td><td>PASS and FAIL panels side by side (flex row)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R04 -->
+<div class="test-case" id="tc-r04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R04</span>
+    <span class="tc-title">Toggle Rule Enabled/Disabled</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify toggling a rule's enabled state works for both built-in and custom rules.</p>
+
+    <ol class="steps">
+      <li>Find any enabled rule in the list (toggle is purple).</li>
+      <li>Click the <strong>toggle switch</strong> to disable it.</li>
+      <li>Verify the rule row becomes semi-transparent (opacity 0.5).</li>
+      <li>Click the toggle again to re-enable it.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Action</th><th>Expected</th></tr>
+        <tr><td>Disable rule</td><td>Toggle turns gray; row fades to 50% opacity; footer count updates</td></tr>
+        <tr><td>Re-enable rule</td><td>Toggle turns purple; row returns to full opacity</td></tr>
+        <tr><td>API call</td><td>PATCH request to <span class="inline-code">/compliance/rules/{id}/toggle</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R05 -->
+<div class="test-case" id="tc-r05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R05</span>
+    <span class="tc-title">Edit Custom Rule</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Edit an existing custom rule and verify changes persist.</p>
+
+    <ol class="steps">
+      <li>Find a <span class="badge green">Custom</span> rule in the list.</li>
+      <li>Click the <strong>✏️ pencil icon</strong> to open the edit modal.</li>
+      <li>Change the description to: <span class="inline-code">Updated: Enhanced key rotation verification</span></li>
+      <li>Change severity from Critical to <strong>High</strong>.</li>
+      <li>Click <strong>"Update"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Description</td><td>Updated text visible in the rule row</td></tr>
+        <tr><td>Severity</td><td>Changed from <span class="badge red">CRITICAL</span> to <span class="badge orange">HIGH</span></td></tr>
+        <tr><td>Modal pre-fill</td><td>Edit modal loaded with existing values before changes</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R06 -->
+<div class="test-case" id="tc-r06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R06</span>
+    <span class="tc-title">Delete Custom Rule</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Delete a custom rule and verify it's removed.</p>
+
+    <ol class="steps">
+      <li>Find a <span class="badge green">Custom</span> rule.</li>
+      <li>Click the <strong>🗑️ trash icon</strong>.</li>
+      <li>A confirmation modal appears: "Are you sure you want to delete '[rule name]'?"</li>
+      <li>Click <strong>"Delete Rule"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Confirmation modal</td><td>Shows rule name with warning text</td></tr>
+        <tr><td>After delete</td><td>Rule removed from the list; footer count updates</td></tr>
+        <tr><td>API call</td><td>DELETE request to <span class="inline-code">/compliance/rules/{id}</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R07 -->
+<div class="test-case" id="tc-r07">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R07</span>
+    <span class="tc-title">Cannot Delete Built-in Rule</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify built-in rules cannot be deleted (no trash icon).</p>
+
+    <ol class="steps">
+      <li>Find a <span class="badge blue">Built-in</span> rule (e.g., <span class="inline-code">sox-1</span> "Financial Data Integrity").</li>
+      <li>Inspect the Actions column for that row.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Trash icon</td><td><span class="verdict fail">NOT present</span> for built-in rules</td></tr>
+        <tr><td>Edit icon</td><td><span class="verdict pass">Present</span> — built-in rules can be edited</td></tr>
+        <tr><td>Toggle</td><td><span class="verdict pass">Present</span> — built-in rules can be disabled</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R08 -->
+<div class="test-case" id="tc-r08">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R08</span>
+    <span class="tc-title">Switch Framework Sub-tabs</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify switching between framework tabs loads the correct rules.</p>
+
+    <ol class="steps">
+      <li>Start on the <strong>📊 SOX</strong> sub-tab → note the rules displayed.</li>
+      <li>Click <strong>🏥 HIPAA</strong> tab → new rules load.</li>
+      <li>Click <strong>🇪🇺 GDPR</strong> tab → GDPR rules load.</li>
+      <li>Click <strong>💳 PCI-DSS</strong> tab → PCI-DSS rules load.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Framework</th><th>Expected Rules</th></tr>
+        <tr><td><span class="badge blue">SOX</span></td><td>Financial Data Integrity, Segregation of Duties, Access Logging, PII in Financial Data, Approval Trail</td></tr>
+        <tr><td><span class="badge purple">HIPAA</span></td><td>PHI Access Controls, Minimum Necessary, Breach Notification, Encryption, Audit Trail</td></tr>
+        <tr><td><span class="badge blue">GDPR</span></td><td>Consent Verification, Right to Erasure, Data Minimization, Cross-Border Transfer, Privacy by Design</td></tr>
+        <tr><td><span class="badge orange">PCI-DSS</span></td><td>Card Data Masking, Network Segmentation, Access Control, Encryption, Security Testing</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R09 -->
+<div class="test-case" id="tc-r09">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R09</span>
+    <span class="tc-title">Upload Rules via CSV/XLS</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify rules can be bulk-imported from a CSV or XLS file.</p>
+
+    <ol class="steps">
+      <li>Click the <strong>"Upload CSV/XLS"</strong> button in the rules tab header.</li>
+      <li>Select a properly formatted CSV file with columns: name, description, category, severity.</li>
+      <li>Wait for upload to complete.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Success banner</td><td>Green: "✅ Imported X rules successfully"</td></tr>
+        <tr><td>Error banner</td><td>Red: "❌ [error message]" if upload fails</td></tr>
+        <tr><td>Rules list</td><td>Refreshed with newly imported rules marked as <span class="badge green">Custom</span></td></tr>
+        <tr><td>Dismiss</td><td>✕ button to dismiss the status banner</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- APPENDIX — FRAMEWORK QUICK REFERENCE        -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="appendix"><span class="section-num">A</span> Framework Quick Reference</h2>
+
+<div class="card green">
+  <div class="card-title">📊 SOX — Sarbanes-Oxley Act</div>
+  <table class="io-table">
+    <tr><th>Rule ID</th><th>Name</th><th>Category</th><th>Severity</th></tr>
+    <tr><td>sox-1</td><td>Financial Data Integrity</td><td>data_integrity</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>sox-2</td><td>Segregation of Duties</td><td>access_control</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>sox-3</td><td>Access Logging Completeness</td><td>audit</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>sox-4</td><td>PII in Financial Data</td><td>data_protection</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>sox-5</td><td>Approval Trail Verification</td><td>governance</td><td><span class="badge blue">MEDIUM</span></td></tr>
+  </table>
+</div>
+
+<div class="card purple">
+  <div class="card-title">🏥 HIPAA — Health Insurance Portability and Accountability Act</div>
+  <table class="io-table">
+    <tr><th>Rule ID</th><th>Name</th><th>Category</th><th>Severity</th></tr>
+    <tr><td>hipaa-1</td><td>PHI Access Controls</td><td>access_control</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>hipaa-2</td><td>Minimum Necessary Standard</td><td>data_minimization</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>hipaa-3</td><td>Breach Notification</td><td>incident_response</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>hipaa-4</td><td>Data Encryption</td><td>encryption</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>hipaa-5</td><td>Audit Trail</td><td>audit</td><td><span class="badge blue">MEDIUM</span></td></tr>
+  </table>
+</div>
+
+<div class="card blue">
+  <div class="card-title">🇪🇺 GDPR — General Data Protection Regulation</div>
+  <table class="io-table">
+    <tr><th>Rule ID</th><th>Name</th><th>Category</th><th>Severity</th></tr>
+    <tr><td>gdpr-1</td><td>Consent Verification</td><td>consent</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>gdpr-2</td><td>Right to Erasure</td><td>data_subject_rights</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>gdpr-3</td><td>Data Minimization</td><td>data_minimization</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>gdpr-4</td><td>Cross-Border Transfer</td><td>data_transfer</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>gdpr-5</td><td>Privacy by Design</td><td>privacy</td><td><span class="badge blue">MEDIUM</span></td></tr>
+  </table>
+</div>
+
+<div class="card orange">
+  <div class="card-title">💳 PCI-DSS — Payment Card Industry Data Security Standard</div>
+  <table class="io-table">
+    <tr><th>Rule ID</th><th>Name</th><th>Category</th><th>Severity</th></tr>
+    <tr><td>pci-1</td><td>Card Data Masking</td><td>data_protection</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>pci-2</td><td>Network Segmentation</td><td>network_security</td><td><span class="badge red">CRITICAL</span></td></tr>
+    <tr><td>pci-3</td><td>Access Control</td><td>access_control</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>pci-4</td><td>Data Encryption</td><td>encryption</td><td><span class="badge orange">HIGH</span></td></tr>
+    <tr><td>pci-5</td><td>Security Testing</td><td>testing</td><td><span class="badge blue">MEDIUM</span></td></tr>
+  </table>
+</div>
+
+<div class="alert success">
+  <strong>✅ Test Completion Checklist</strong>
+  After running all test cases, confirm:
+  <ul style="margin-top:0.5rem;">
+    <li>✅ Configs tab only shows config cards + detail panel (no run/upload buttons)</li>
+    <li>✅ Scans tab can select config, run scan (with or without custom samples), and display live results</li>
+    <li>✅ History tab cascading selection: Config → Run → Details with back navigation</li>
+    <li>✅ Compliance Rules tab manages SOX/HIPAA/GDPR/PCI-DSS rules with CRUD + toggle</li>
+    <li>✅ All 4 framework sub-tabs load correct rule sets</li>
+    <li>✅ Built-in rules cannot be deleted but can be disabled</li>
+    <li>✅ Custom rules support create, edit, delete, toggle, and sample data</li>
+  </ul>
+</div>
+
+</div><!-- /container -->
+
+<script>
+function toggleTC(header) {
+  const tc = header.closest('.test-case');
+  tc.classList.toggle('open');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// Auto-open first test case in each section
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.test-case').forEach(tc => {
+    // Only keep explicitly marked ones open
+  });
+});
+</script>
+
+</body>
+</html>

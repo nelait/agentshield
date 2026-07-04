@@ -11,6 +11,19 @@ class GuardrailsService {
 
     async createProfile(data) {
         const { name, description, mode, createdBy } = data;
+
+        // Enforce unique profile name
+        const existing = await db.query(
+            'SELECT id FROM guardrail_profiles WHERE LOWER(name) = LOWER($1)',
+            [name]
+        );
+        if (existing.rows.length > 0) {
+            const err = new Error(`A guardrail profile named "${name}" already exists. Please choose a unique name.`);
+            err.statusCode = 409;
+            err.isOperational = true;
+            throw err;
+        }
+
         const result = await db.query(
             `INSERT INTO guardrail_profiles (name, description, mode, created_by)
              VALUES ($1, $2, $3, $4) RETURNING *`,
@@ -62,6 +75,20 @@ class GuardrailsService {
         const setClauses = [];
         const params = [];
         let idx = 1;
+
+        // If name is being updated, enforce uniqueness
+        if (data.name) {
+            const existing = await db.query(
+                'SELECT id FROM guardrail_profiles WHERE LOWER(name) = LOWER($1) AND id != $2',
+                [data.name, id]
+            );
+            if (existing.rows.length > 0) {
+                const err = new Error(`A guardrail profile named "${data.name}" already exists. Please choose a unique name.`);
+                err.statusCode = 409;
+                err.isOperational = true;
+                throw err;
+            }
+        }
 
         for (const [key, value] of Object.entries(data)) {
             const dbKey = key.replace(/[A-Z]/g, l => `_${l.toLowerCase()}`);

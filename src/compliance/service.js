@@ -446,11 +446,48 @@ class ComplianceService {
             case 'custom-2': return { passed: true, details: `RBAC enforced | ${connStatus}` };
             case 'custom-3': return { passed: true, details: `Audit logging active | ${connStatus}` };
 
-            default:
-                return { passed: true, details: 'Rule evaluation not implemented' };
+            default: {
+                // For custom/dynamic rules: attempt basic evaluation using the rule's sample data
+                const evalConfig = rule.evaluation_config || {};
+                const samples_config = evalConfig.samples || {};
+
+                // If the rule has fail sample patterns, check if the current I/O matches them
+                if (samples_config.fail) {
+                    const failInput = (samples_config.fail.input || '').toLowerCase();
+                    const failOutput = (samples_config.fail.output || '').toLowerCase();
+                    const currentInputLower = allInputText.toLowerCase();
+                    const currentOutputLower = allOutputText.toLowerCase();
+
+                    // Extract key words from fail samples for pattern matching (words > 4 chars)
+                    const failInputWords = failInput.split(/\s+/).filter(w => w.length > 4);
+                    const failOutputWords = failOutput.split(/\s+/).filter(w => w.length > 4);
+
+                    const inputMatchCount = failInputWords.filter(w => currentInputLower.includes(w)).length;
+                    const outputMatchCount = failOutputWords.filter(w => currentOutputLower.includes(w)).length;
+
+                    const inputMatchRatio = failInputWords.length > 0 ? inputMatchCount / failInputWords.length : 0;
+                    const outputMatchRatio = failOutputWords.length > 0 ? outputMatchCount / failOutputWords.length : 0;
+
+                    // If >40% of fail-pattern words appear, flag as failed
+                    if (inputMatchRatio > 0.4 || outputMatchRatio > 0.4) {
+                        const matchDetails = [];
+                        if (inputMatchRatio > 0.4) matchDetails.push(`INPUT matches fail pattern (${(inputMatchRatio * 100).toFixed(0)}%)`);
+                        if (outputMatchRatio > 0.4) matchDetails.push(`OUTPUT matches fail pattern (${(outputMatchRatio * 100).toFixed(0)}%)`);
+                        return { passed: false, details: `${matchDetails.join(' | ')} | ${connStatus}` };
+                    }
+                }
+
+                // Also run PII detection on custom rules as a baseline safety check
+                if (combinedPII.detected) {
+                    return { passed: false, details: `PII detected: ${combinedPII.types.join(', ')} | ${connStatus}` };
+                }
+
+                // If no fail patterns matched and no PII found, pass
+                const hasEvalConfig = samples_config.pass || samples_config.fail;
+                return { passed: true, details: hasEvalConfig ? `No violations detected | ${connStatus}` : 'Rule evaluation not implemented' };
+            }
         }
     }
-
     /**
      * Invoke a real agent with a sample input
      */
