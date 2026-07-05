@@ -1,6 +1,7 @@
 -- ============================================
 -- Cost Management — Test Seed Data
 -- Run after all migrations (including 007)
+-- SKIPPED in production environments.
 --
 -- Creates:
 --   • 5 test agents
@@ -8,6 +9,15 @@
 --   • 30 days of cost_records (realistic usage patterns)
 --   • 3 budget_history entries (archived periods)
 -- ============================================
+
+-- Guard: skip in production
+DO $$
+BEGIN
+    IF current_setting('app.environment', true) = 'production' THEN
+        RAISE NOTICE 'Skipping cost test data seed in production environment';
+        RETURN;
+    END IF;
+END $$;
 
 -- ────────────────────────────────
 -- 1. TEST AGENTS

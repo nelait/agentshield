@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentShield — Cost Management Module Test Cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --card: #111827;
+  --card-hover: #1a2332;
+  --border: #1e293b;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --green: #10b981;
+  --green-bg: #064e3b;
+  --red: #ef4444;
+  --red-bg: #450a0a;
+  --orange: #f59e0b;
+  --orange-bg: #451a03;
+  --blue: #3b82f6;
+  --blue-bg: #1e3a5f;
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.15);
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-bright: #f8fafc;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.7;
+}
+.container { max-width:1100px; margin:0 auto; padding:2rem; }
+
+/* ── Hero ────────────────────────── */
+.hero {
+  text-align:center;
+  padding:3rem 2rem;
+  background:linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #042f2e 100%);
+  border-bottom:1px solid var(--border);
+  margin-bottom:2rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before {
+  content:'';
+  position:absolute;
+  top:-50%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:radial-gradient(circle at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(6,182,212,0.06) 0%, transparent 50%);
+  animation:pulseGlow 8s ease-in-out infinite alternate;
+}
+@keyframes pulseGlow {
+  0% { opacity:0.5; }
+  100% { opacity:1; }
+}
+.hero h1 {
+  font-size:2.5rem;
+  font-weight:800;
+  background:linear-gradient(135deg, var(--accent-light), var(--cyan));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:0.5rem;
+  position:relative;
+}
+.hero .subtitle { color:var(--text-dim); font-size:1.1rem; position:relative; }
+.hero .meta {
+  margin-top:1rem;
+  display:flex;
+  gap:1.5rem;
+  justify-content:center;
+  flex-wrap:wrap;
+  position:relative;
+}
+.hero .meta span { color:var(--text-dim); font-size:0.85rem; }
+.hero .meta span strong { color:var(--accent-light); }
+
+/* ── Table of Contents ───────────── */
+.toc {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem 2rem;
+  margin-bottom:2.5rem;
+}
+.toc h2 { font-size:1.2rem; color:var(--accent-light); margin-bottom:1rem; border:none; padding:0; }
+.toc-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:0.4rem; }
+.toc a {
+  color:var(--text);
+  text-decoration:none;
+  font-size:0.9rem;
+  padding:0.4rem 0.6rem;
+  border-radius:6px;
+  display:block;
+  transition:all 0.2s;
+}
+.toc a:hover { background:var(--card-hover); color:var(--accent-light); transform:translateX(4px); }
+.toc a .num { color:var(--accent); font-weight:700; margin-right:0.4rem; }
+
+/* ── Headings ────────────────────── */
+h2 {
+  font-size:1.6rem;
+  color:var(--text-bright);
+  margin:2.5rem 0 1rem;
+  padding-bottom:0.5rem;
+  border-bottom:2px solid var(--accent);
+}
+h3 { font-size:1.25rem; color:var(--accent-light); margin:1.8rem 0 0.8rem; }
+h4 { font-size:1.05rem; color:var(--cyan); margin:1.2rem 0 0.6rem; }
+p { margin-bottom:1rem; }
+ul, ol { margin:0.5rem 0 1rem 1.5rem; }
+li { margin-bottom:0.3rem; }
+
+/* ── Cards ───────────────────────── */
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem;
+  margin-bottom:1.5rem;
+  transition:border-color 0.3s;
+}
+.card:hover { border-color:var(--accent); }
+.card.green { border-left:4px solid var(--green); }
+.card.red { border-left:4px solid var(--red); }
+.card.orange { border-left:4px solid var(--orange); }
+.card.blue { border-left:4px solid var(--blue); }
+.card.purple { border-left:4px solid var(--purple); }
+.card-title { font-weight:700; font-size:1.1rem; margin-bottom:0.5rem; }
+
+/* ── Test Case Card ──────────────── */
+.test-case {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:0;
+  margin-bottom:1.5rem;
+  overflow:hidden;
+  transition:all 0.3s;
+}
+.test-case:hover { border-color: rgba(99,102,241,0.5); box-shadow:0 0 20px rgba(99,102,241,0.08); }
+.test-case-header {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:1rem 1.5rem;
+  background:rgba(99,102,241,0.05);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.test-case-header:hover { background:rgba(99,102,241,0.1); }
+.tc-id {
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  font-size:0.75rem;
+  padding:0.25rem 0.6rem;
+  border-radius:6px;
+  white-space:nowrap;
+}
+.tc-title { font-weight:600; font-size:1rem; color:var(--text-bright); flex:1; }
+.tc-priority {
+  font-size:0.7rem;
+  font-weight:600;
+  padding:0.2rem 0.5rem;
+  border-radius:10px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.tc-priority.high { background:var(--red-bg); color:var(--red); }
+.tc-priority.medium { background:var(--orange-bg); color:var(--orange); }
+.tc-priority.low { background:var(--blue-bg); color:var(--blue); }
+.tc-chevron { color:var(--text-dim); font-size:1rem; transition:transform 0.3s; }
+.test-case.open .tc-chevron { transform:rotate(180deg); }
+.test-case-body { padding:1.5rem; display:none; }
+.test-case.open .test-case-body { display:block; }
+
+/* ── IO Tables ───────────────────── */
+.io-section { margin:1rem 0; }
+.io-label {
+  font-size:0.8rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--text-dim);
+  margin-bottom:0.5rem;
+}
+.io-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.io-table th {
+  background:rgba(99,102,241,0.1);
+  color:var(--accent-light);
+  font-weight:600;
+  text-align:left;
+  padding:0.6rem 1rem;
+  border:1px solid var(--border);
+  font-size:0.8rem;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.io-table td { padding:0.55rem 1rem; border:1px solid var(--border); vertical-align:top; }
+.io-table tr:nth-child(even) { background:rgba(99,102,241,0.03); }
+
+/* ── Code Blocks ─────────────────── */
+pre {
+  background:#0d1117;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:1rem 1.2rem;
+  overflow-x:auto;
+  margin:0.8rem 0 1.2rem;
+  font-size:0.83rem;
+  line-height:1.6;
+  position:relative;
+}
+code {
+  font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+  color:#e6edf3;
+}
+.inline-code {
+  background:#1e293b;
+  padding:0.15rem 0.45rem;
+  border-radius:4px;
+  font-size:0.83rem;
+  color:var(--cyan);
+  font-family:'JetBrains Mono','Fira Code',monospace;
+}
+
+/* ── Badges ──────────────────────── */
+.badge {
+  display:inline-block;
+  padding:0.15rem 0.6rem;
+  border-radius:20px;
+  font-size:0.75rem;
+  font-weight:600;
+}
+.badge.green { background:var(--green-bg); color:var(--green); }
+.badge.red { background:var(--red-bg); color:var(--red); }
+.badge.orange { background:var(--orange-bg); color:var(--orange); }
+.badge.blue { background:var(--blue-bg); color:var(--blue); }
+.badge.purple { background:var(--purple-bg); color:var(--purple); }
+
+/* ── Alerts ──────────────────────── */
+.alert { border-radius:8px; padding:1rem 1.2rem; margin:1rem 0; font-size:0.9rem; }
+.alert.info { background:rgba(59,130,246,0.1); border-left:4px solid var(--blue); }
+.alert.warn { background:rgba(245,158,11,0.1); border-left:4px solid var(--orange); }
+.alert.success { background:rgba(16,185,129,0.1); border-left:4px solid var(--green); }
+.alert.danger { background:rgba(239,68,68,0.1); border-left:4px solid var(--red); }
+.alert strong { display:block; margin-bottom:0.3rem; }
+
+/* ── Step List ───────────────────── */
+.steps { counter-reset:step; list-style:none; margin:1rem 0; padding:0; }
+.steps li {
+  counter-increment:step;
+  padding:0.6rem 0 0.6rem 3rem;
+  position:relative;
+  border-left:2px solid var(--border);
+  margin-left:1rem;
+}
+.steps li:last-child { border-left-color:transparent; }
+.steps li::before {
+  content:counter(step);
+  position:absolute;
+  left:-14px;
+  top:0.5rem;
+  width:26px;
+  height:26px;
+  background:var(--accent);
+  color:white;
+  font-size:0.75rem;
+  font-weight:700;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ── Verdict Badges ──────────────── */
+.verdict {
+  display:inline-flex;
+  align-items:center;
+  gap:0.3rem;
+  padding:0.2rem 0.7rem;
+  border-radius:6px;
+  font-size:0.8rem;
+  font-weight:600;
+}
+.verdict.pass { background:var(--green-bg); color:var(--green); }
+.verdict.block { background:var(--red-bg); color:var(--red); }
+.verdict.warn { background:var(--orange-bg); color:var(--orange); }
+
+/* ── Summary Stats ───────────────── */
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:1rem;
+  margin:1.5rem 0;
+}
+.stat-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1.2rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+.stat-card .stat-num { font-size:2rem; font-weight:800; color:var(--accent-light); }
+.stat-card .stat-label { font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Copy Button ─────────────────── */
+.code-block { position:relative; }
+.copy-btn {
+  position:absolute;
+  top:0.5rem;
+  right:0.5rem;
+  background:var(--card);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  padding:0.3rem 0.6rem;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:0.72rem;
+  font-family:'Inter',sans-serif;
+  transition:all 0.2s;
+  z-index:1;
+}
+.copy-btn:hover { color:var(--accent-light); border-color:var(--accent); }
+
+/* ── Section Number ──────────────── */
+.section-num { color:var(--accent); font-weight:700; margin-right:0.5rem; }
+
+/* ── Flow Diagram ────────────────── */
+.flow {
+  background:#0d1117;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:1.5rem;
+  margin:1rem 0 1.5rem;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.82rem;
+  line-height:1.8;
+  white-space:pre;
+  overflow-x:auto;
+  color:var(--text-dim);
+}
+.flow .highlight { color:var(--accent-light); font-weight:700; }
+.flow .green { color:var(--green); }
+.flow .red { color:var(--red); }
+.flow .orange { color:var(--orange); }
+.flow .cyan { color:var(--cyan); }
+
+/* ── Feature Grid ───────────────── */
+.feature-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:1rem;
+  margin:1rem 0 1.5rem;
+}
+.feature-chip {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.feature-chip:hover { border-color:var(--accent); transform:translateY(-2px); }
+.feature-chip .feature-icon { font-size:1.5rem; margin-bottom:0.4rem; }
+.feature-chip .feature-name { font-size:0.85rem; font-weight:600; color:var(--text-bright); }
+.feature-chip .feature-desc { font-size:0.75rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Responsive ──────────────────── */
+@media(max-width:768px) {
+  .hero h1 { font-size:1.8rem; }
+  .toc-grid { grid-template-columns:1fr; }
+  .stats-grid { grid-template-columns:repeat(2, 1fr); }
+  .container { padding:1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ -->
+<!-- HERO                                    -->
+<!-- ════════════════════════════════════════ -->
+<div class="hero">
+  <h1>💰 Cost Management Module — Test Cases</h1>
+  <p class="subtitle">Step-by-Step Testing Guide for Budgets, Model Pricing CRUD, Token Tracking &amp; Budget Enforcement</p>
+  <div class="meta">
+    <span>📅 <strong>July 2026</strong></span>
+    <span>🔖 <strong>v2.0</strong></span>
+    <span>📋 <strong>30 Test Cases</strong></span>
+    <span>📦 <strong>agentshield-dashboard</strong></span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════ -->
+<!-- DOCUMENT OVERVIEW                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="alert info">
+  <strong>📘 About This Document</strong>
+  This document provides comprehensive, repeatable test cases for the AgentShield <strong>Cost Management</strong> module.
+  Each test case specifies exact inputs, step-by-step actions, and expected results.
+  Tests can be executed via the <strong>Admin Dashboard UI</strong> or the <strong>REST API</strong>.
+</div>
+
+<!-- Test Summary Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-num">30</div>
+    <div class="stat-label">Total Test Cases</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">6</div>
+    <div class="stat-label">Test Sections</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">4</div>
+    <div class="stat-label">Tabs Covered</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">2</div>
+    <div class="stat-label">Test Modes</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="toc">
+  <h2>📑 Table of Contents</h2>
+  <div class="toc-grid">
+    <a href="#s0"><span class="num">00</span> Prerequisites &amp; Setup</a>
+    <a href="#s1"><span class="num">01</span> Budget Management (CRUD)</a>
+    <a href="#s2"><span class="num">02</span> Model Pricing Management (CRUD)</a>
+    <a href="#s3"><span class="num">03</span> Overview &amp; Reporting</a>
+    <a href="#s4"><span class="num">04</span> Budget History &amp; Forecasting</a>
+    <a href="#s5"><span class="num">05</span> Gateway Budget Enforcement</a>
+    <a href="#s6"><span class="num">06</span> Token Tracking &amp; Estimation</a>
+    <a href="#appendix"><span class="num">A</span> Feature Quick Reference</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 0 — PREREQUISITES                  -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s0"><span class="section-num">00</span> Prerequisites &amp; Setup</h2>
+
+<div class="card blue">
+  <div class="card-title">🔧 Environment Requirements</div>
+  <ul>
+    <li>AgentShield backend running (local <span class="inline-code">npm start</span> or deployed at GCP)</li>
+    <li>PostgreSQL with migration <span class="inline-code">011_model_pricing_table.sql</span> applied</li>
+    <li>At least one agent registered (e.g., <strong>GPT-4 Analyst</strong> via seed data)</li>
+    <li>Logged in as <span class="badge blue">admin</span> or <span class="badge purple">editor</span> role</li>
+    <li>Dashboard accessible at <span class="inline-code">https://agentshield-dashboard.web.app</span> or <span class="inline-code">http://localhost:5174</span></li>
+    <li>Cost Management module enabled in <strong>Settings → Module Toggles</strong></li>
+  </ul>
+</div>
+
+<div class="alert warn">
+  <strong>⚠️ Before You Begin</strong>
+  Ensure the Cost Management module is <strong>enabled</strong> in Settings → Module Toggles. 
+  If disabled, the gateway middleware will skip budget enforcement entirely.
+  Run <span class="inline-code">node src/db/migrate.js</span> if the <code>model_pricing</code> table does not exist.
+</div>
+
+<h3>Module Feature Map</h3>
+<div class="feature-grid">
+  <div class="feature-chip">
+    <div class="feature-icon">📊</div>
+    <div class="feature-name">Overview Tab</div>
+    <div class="feature-desc">Stats, charts, daily usage trends, forecasting</div>
+  </div>
+  <div class="feature-chip">
+    <div class="feature-icon">💰</div>
+    <div class="feature-name">Budgets Tab</div>
+    <div class="feature-desc">CRUD budgets, scope types, warn/hard limits</div>
+  </div>
+  <div class="feature-chip">
+    <div class="feature-icon">📋</div>
+    <div class="feature-name">Model Pricing Tab</div>
+    <div class="feature-desc">Add/edit/delete model pricing, vendor tracking</div>
+  </div>
+  <div class="feature-chip">
+    <div class="feature-icon">🕐</div>
+    <div class="feature-name">Budget History Tab</div>
+    <div class="feature-desc">Archived periods, utilization tracking</div>
+  </div>
+</div>
+
+<h3>API Base URL</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Local development
+BASE_URL=http://localhost:3000/api/v1/admin
+
+# Production (GCP)
+BASE_URL=https://&lt;your-cloud-run-url&gt;/api/v1/admin</code></pre>
+</div>
+
+<h3>Authentication Header</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Get token via login
+curl -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"admin123"}'
+
+# Use token in subsequent requests
+AUTH="Authorization: Bearer &lt;your-jwt-token&gt;"</code></pre>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 1 — BUDGET MANAGEMENT (CRUD)       -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s1"><span class="section-num">01</span> Budget Management (CRUD)</h2>
+
+<p>A <strong>Budget</strong> defines token and cost limits for a specific scope (user, team, department, agent, project, or global). Each budget has a period (daily/weekly/monthly/quarterly), warning threshold, and optional hard limit that blocks requests when exceeded.</p>
+
+<div class="card orange">
+  <div class="card-title">Scope Types &amp; Hard Limits</div>
+  <table class="io-table">
+    <tr><th>Scope</th><th>Description</th></tr>
+    <tr><td><span class="badge blue">user</span></td><td>Limit applies to a specific user ID</td></tr>
+    <tr><td><span class="badge blue">team</span></td><td>Limit applies to a team (e.g., "engineering")</td></tr>
+    <tr><td><span class="badge blue">department</span></td><td>Limit applies to a department</td></tr>
+    <tr><td><span class="badge purple">agent</span></td><td>Limit applies to a specific agent UUID</td></tr>
+    <tr><td><span class="badge blue">project</span></td><td>Limit applies to a project identifier</td></tr>
+    <tr><td><span class="badge green">global</span></td><td>Organization-wide limit (scope_id = "global")</td></tr>
+  </table>
+</div>
+
+<!-- TC-B01 -->
+<div class="test-case open" id="tc-b01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-B01</span>
+    <span class="tc-title">Create a Team Budget (Monthly)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a new budget with monthly period, token limit, and cost limit.</p>
+    
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Cost Management</strong> in the sidebar.</li>
+      <li>Click the <strong>"+ Create Budget"</strong> button.</li>
+      <li>Fill in the form fields as shown in the input table below.</li>
+      <li>Click <strong>"Create"</strong>.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X POST $BASE_URL/budgets \
+  -H "Content-Type: application/json" \
+  -H "$AUTH" \
+  -d '{
+    "name": "Engineering Monthly Budget",
+    "scopeType": "team",
+    "scopeId": "engineering",
+    "tokenLimit": 10000000,
+    "costLimitCents": 50000,
+    "period": "monthly",
+    "warnThreshold": 0.80,
+    "hardLimit": true
+  }'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📥 Input</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Value</th></tr>
+        <tr><td>Name</td><td>Engineering Monthly Budget</td></tr>
+        <tr><td>Scope Type</td><td>team</td></tr>
+        <tr><td>Scope ID</td><td>engineering</td></tr>
+        <tr><td>Token Limit</td><td>10,000,000</td></tr>
+        <tr><td>Cost Limit ($)</td><td>$500.00 (50000 cents)</td></tr>
+        <tr><td>Period</td><td>monthly</td></tr>
+        <tr><td>Warn Threshold</td><td>80%</td></tr>
+        <tr><td>Hard Limit</td><td>✅ Yes</td></tr>
+      </table>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td><span class="badge green">201 Created</span></td></tr>
+        <tr><td>Budget appears in Budgets tab</td><td>Row shows with name, scope, period, utilization bar at 0%</td></tr>
+        <tr><td>Current Tokens / Cost</td><td>0 / 10,000,000 and $0.00 / $500.00</td></tr>
+        <tr><td>Hard limit indicator</td><td>Shown as "Hard" badge</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-B02 -->
+<div class="test-case" id="tc-b02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-B02</span>
+    <span class="tc-title">Create a Global Budget (Quarterly)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a global scope budget. The scope ID should auto-fill as "global".</p>
+    <ol class="steps">
+      <li>Click <strong>"+ Create Budget"</strong>.</li>
+      <li>Set Scope Type to <strong>"Global"</strong>.</li>
+      <li>Verify Scope ID field is <strong>disabled</strong> and shows "global".</li>
+      <li>Set Name: "Org-Wide Q3 Cap", Token Limit: 100,000,000, Cost Limit: $5000, Period: quarterly.</li>
+      <li>Click <strong>"Create"</strong>.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Scope ID auto-set</td><td>"global" (field disabled in UI)</td></tr>
+        <tr><td>Budget created</td><td>Visible in budgets list with <span class="badge green">global</span> scope badge</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-B03 -->
+<div class="test-case" id="tc-b03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-B03</span>
+    <span class="tc-title">Edit an Existing Budget</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Modify an existing budget's limits and verify changes persist.</p>
+    <ol class="steps">
+      <li>In the Budgets tab, click the ✏️ edit icon on any budget row.</li>
+      <li>Change the Token Limit from its current value to <strong>20,000,000</strong>.</li>
+      <li>Change the Warn Threshold to <strong>70%</strong>.</li>
+      <li>Toggle Hard Limit to <strong>off</strong> (soft limit).</li>
+      <li>Click <strong>"Save Changes"</strong>.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Token limit updated</td><td>Shows 20,000,000 in the table</td></tr>
+        <tr><td>Warn threshold updated</td><td>Reflected in budget details</td></tr>
+        <tr><td>Hard limit indicator</td><td>Shows "Soft" badge instead of "Hard"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-B04 -->
+<div class="test-case" id="tc-b04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-B04</span>
+    <span class="tc-title">Delete a Budget</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Delete a budget and confirm it is removed.</p>
+    <ol class="steps">
+      <li>In the Budgets tab, click the 🗑️ delete icon on the budget to remove.</li>
+      <li>A confirmation dialog should appear: <em>"Are you sure you want to delete this budget?"</em></li>
+      <li>Click <strong>OK</strong> to confirm.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Budget removed</td><td>Row disappears from the table</td></tr>
+        <tr><td>API returns</td><td><span class="badge green">200 OK</span> with success message</td></tr>
+        <tr><td>Refresh page</td><td>Budget does not reappear</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-B05 -->
+<div class="test-case" id="tc-b05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-B05</span>
+    <span class="tc-title">Create Budget with Missing Name (Validation)</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Create button is disabled when required fields are missing.</p>
+    <ol class="steps">
+      <li>Click <strong>"+ Create Budget"</strong>.</li>
+      <li>Leave the Name field <strong>empty</strong>.</li>
+      <li>Fill in all other fields normally.</li>
+      <li>Observe the Create button state.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Create button</td><td><span class="badge orange">Disabled</span> (grayed out, not clickable)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-B06 -->
+<div class="test-case" id="tc-b06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-B06</span>
+    <span class="tc-title">Create Agent-Scoped Budget</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a budget scoped to a specific agent UUID.</p>
+    <ol class="steps">
+      <li>Click <strong>"+ Create Budget"</strong>.</li>
+      <li>Set Scope Type: <strong>Agent</strong>.</li>
+      <li>In Scope ID, paste an agent UUID from the Agent Registry.</li>
+      <li>Set Name: "Code Reviewer Weekly Cap", Token Limit: 2,000,000, Period: weekly.</li>
+      <li>Click <strong>"Create"</strong>.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Scope badge</td><td>Shows <span class="badge purple">agent</span> with truncated UUID</td></tr>
+        <tr><td>Budget enforced for agent</td><td>Only requests via this agent count towards this budget</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 2 — MODEL PRICING MANAGEMENT       -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s2"><span class="section-num">02</span> Model Pricing Management (CRUD)</h2>
+
+<p>The <strong>Model Pricing</strong> tab allows admins to manage LLM cost rates stored in the <span class="inline-code">model_pricing</span> database table. Pricing is used to auto-estimate cost when upstream agents don't return cost data. The pricing cache refreshes every 5 minutes.</p>
+
+<div class="card green">
+  <div class="card-title">Key Design Points</div>
+  <ul>
+    <li><strong>Database-driven</strong> — pricing lives in the <span class="inline-code">model_pricing</span> table, not hardcoded</li>
+    <li><strong>Vendor tracking</strong> — each model has an explicit vendor (OpenAI, Anthropic, Google, etc.)</li>
+    <li><strong>Cached</strong> — in-memory cache with 5-minute TTL for performance</li>
+    <li><strong>Admin CRUD</strong> — add, edit, delete models via UI or API</li>
+  </ul>
+</div>
+
+<!-- TC-M01 -->
+<div class="test-case open" id="tc-m01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M01</span>
+    <span class="tc-title">View Model Pricing Table (20 Seeded Models)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the seeded pricing data is displayed correctly with vendor column.</p>
+    <ol class="steps">
+      <li>Navigate to <strong>Cost Management → Model Pricing</strong> tab.</li>
+      <li>Verify the table headers: Model, Vendor, Input (¢/1M), Output (¢/1M), Input ($/1M), Output ($/1M), Actions.</li>
+      <li>Count the rows.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Row count</td><td>20 models displayed</td></tr>
+        <tr><td>Vendor badges</td><td>Anthropic (4), Google (5), Meta (2), Mistral (1), OpenAI (8)</td></tr>
+        <tr><td>Columns present</td><td>Model, Vendor, Input ¢, Output ¢, Input $, Output $, Actions</td></tr>
+        <tr><td>Each row has</td><td>✏️ edit icon and 🗑️ delete icon in Actions column</td></tr>
+        <tr><td>gpt-4o pricing</td><td>Input: 250 ¢/1M ($2.50), Output: 1,000 ¢/1M ($10.00)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-M02 -->
+<div class="test-case" id="tc-m02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M02</span>
+    <span class="tc-title">Add a New Model Pricing Entry</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Add a new model to the pricing table via the dashboard.</p>
+    
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Click the <strong>"+ Add Model"</strong> button in the Model Pricing tab.</li>
+      <li>Verify the modal opens with fields: Model Name, Vendor dropdown, Input Price, Output Price.</li>
+      <li>Enter: Model Name = <span class="inline-code">gpt-5-turbo</span>, Vendor = OpenAI, Input = 500, Output = 2000.</li>
+      <li>Verify the dollar conversion hint shows: "$5.00/1M input and $20.00/1M output tokens."</li>
+      <li>Click <strong>"Add Model"</strong>.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X POST $BASE_URL/cost/model-pricing \
+  -H "Content-Type: application/json" \
+  -H "$AUTH" \
+  -d '{
+    "modelName": "gpt-5-turbo",
+    "vendor": "OpenAI",
+    "inputPer1M": 500,
+    "outputPer1M": 2000
+  }'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td><span class="badge green">201 Created</span></td></tr>
+        <tr><td>New row appears</td><td><span class="inline-code">gpt-5-turbo</span> with <span class="badge blue">OpenAI</span> vendor badge</td></tr>
+        <tr><td>Row count</td><td>21 models now displayed</td></tr>
+        <tr><td>Dollar conversion</td><td>Input $5.00, Output $20.00</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-M03 -->
+<div class="test-case" id="tc-m03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M03</span>
+    <span class="tc-title">Add Duplicate Model Name (Validation)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that duplicate model names are rejected due to the UNIQUE constraint.</p>
+    <ol class="steps">
+      <li>Click <strong>"+ Add Model"</strong>.</li>
+      <li>Enter Model Name: <span class="inline-code">gpt-4o</span> (already exists).</li>
+      <li>Set any vendor and prices.</li>
+      <li>Click <strong>"Add Model"</strong>.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Error message</td><td>Alert/toast shows "duplicate key" or "already exists" error</td></tr>
+        <tr><td>Model not duplicated</td><td>Table still shows only one <span class="inline-code">gpt-4o</span> entry</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-M04 -->
+<div class="test-case" id="tc-m04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M04</span>
+    <span class="tc-title">Edit Model Pricing (Change Price)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Update an existing model's pricing and verify changes persist.</p>
+    <ol class="steps">
+      <li>Click the ✏️ edit icon on the <span class="inline-code">gpt-4o</span> row.</li>
+      <li>Verify the modal opens with pre-filled values: Input = 250, Output = 1000.</li>
+      <li>Verify the Model Name field is <strong>disabled</strong> (read-only during edit).</li>
+      <li>Change Input Price to <strong>300</strong> and Output Price to <strong>1200</strong>.</li>
+      <li>Click <strong>"Save Changes"</strong>.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X PUT $BASE_URL/cost/model-pricing/&lt;model-uuid&gt; \
+  -H "Content-Type: application/json" \
+  -H "$AUTH" \
+  -d '{
+    "inputPer1M": 300,
+    "outputPer1M": 1200
+  }'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Input price updated</td><td>Shows 300 ¢/1M ($3.00/1M)</td></tr>
+        <tr><td>Output price updated</td><td>Shows 1,200 ¢/1M ($12.00/1M)</td></tr>
+        <tr><td>Pricing cache invalidated</td><td>New cost estimates use updated prices within 5 minutes</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-M05 -->
+<div class="test-case" id="tc-m05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M05</span>
+    <span class="tc-title">Delete a Model Pricing Entry</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Delete a model pricing entry and confirm removal.</p>
+    <ol class="steps">
+      <li>Click the 🗑️ delete icon on the <span class="inline-code">mixtral-8x7b</span> row.</li>
+      <li>Confirm the deletion dialog.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Row removed</td><td><span class="inline-code">mixtral-8x7b</span> no longer in table</td></tr>
+        <tr><td>Row count</td><td>One fewer model in the table</td></tr>
+        <tr><td>API returns</td><td><span class="badge green">200 OK</span> with "Model pricing deleted"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-M06 -->
+<div class="test-case" id="tc-m06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M06</span>
+    <span class="tc-title">Export Model Pricing CSV</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Export the pricing table as a CSV file.</p>
+    <ol class="steps">
+      <li>In the Model Pricing tab, click the <strong>"⬇ Export"</strong> button.</li>
+      <li>A CSV file should download.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>File downloaded</td><td><span class="inline-code">model_pricing.csv</span></td></tr>
+        <tr><td>CSV headers</td><td>model, vendor, input_per_1M_tokens_cents, output_per_1M_tokens_cents</td></tr>
+        <tr><td>Row count</td><td>Matches the table count (20+ rows)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-M07 -->
+<div class="test-case" id="tc-m07">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M07</span>
+    <span class="tc-title">Add Model with Empty Name (Validation)</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Add Model button is disabled when model name is empty.</p>
+    <ol class="steps">
+      <li>Click <strong>"+ Add Model"</strong>.</li>
+      <li>Leave Model Name <strong>empty</strong>.</li>
+      <li>Enter valid vendor and prices.</li>
+      <li>Observe the "Add Model" button state.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>"Add Model" button</td><td><span class="badge orange">Disabled</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-M08 -->
+<div class="test-case" id="tc-m08">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-M08</span>
+    <span class="tc-title">Change Vendor on Existing Model</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Edit a model and change its vendor classification.</p>
+    <ol class="steps">
+      <li>Click ✏️ on any model row (e.g., <span class="inline-code">llama-3.1-70b</span>).</li>
+      <li>Change vendor from "Meta" to "Other".</li>
+      <li>Click <strong>"Save Changes"</strong>.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Vendor badge updated</td><td>Shows <span class="badge blue">Other</span> instead of <span class="badge blue">Meta</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 3 — OVERVIEW & REPORTING           -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s3"><span class="section-num">03</span> Overview &amp; Reporting</h2>
+
+<p>The <strong>Overview</strong> tab provides aggregate cost statistics, daily usage charts, budget alerts, and per-agent usage breakdowns.</p>
+
+<!-- TC-O01 -->
+<div class="test-case open" id="tc-o01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-O01</span>
+    <span class="tc-title">View Overview Stats Cards</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the four stats cards render with data from the cost_records table.</p>
+    <ol class="steps">
+      <li>Navigate to <strong>Cost Management → Overview</strong> tab.</li>
+      <li>Observe the four summary cards at the top.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Card</th><th>Expected Content</th></tr>
+        <tr><td>Total Requests</td><td>Number &gt;= 0 (count of all cost_records)</td></tr>
+        <tr><td>Total Tokens</td><td>Formatted number with comma separators</td></tr>
+        <tr><td>Total Cost</td><td>Dollar amount (e.g., "$234.56")</td></tr>
+        <tr><td>Tokens (24h)</td><td>Tokens consumed in the last 24 hours</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-O02 -->
+<div class="test-case" id="tc-o02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-O02</span>
+    <span class="tc-title">View Daily Usage Chart (30-Day Trend)</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the 30-day area chart renders with token/cost data.</p>
+    <ol class="steps">
+      <li>In the Overview tab, scroll to the "Daily Usage Trend" chart.</li>
+      <li>Hover over data points to see tooltips.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Chart type</td><td>Area chart with gradient fill</td></tr>
+        <tr><td>X-axis</td><td>Date labels (e.g., "Jun 15", "Jun 16")</td></tr>
+        <tr><td>Y-axis</td><td>Token counts</td></tr>
+        <tr><td>Tooltip on hover</td><td>Shows date, token count, cost, and request count</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-O03 -->
+<div class="test-case" id="tc-o03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-O03</span>
+    <span class="tc-title">View Per-Agent Usage Bar Chart</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the agent usage bar chart shows breakdown by agent.</p>
+    <ol class="steps">
+      <li>In the Overview tab, scroll to the "Usage by Agent" bar chart.</li>
+      <li>Verify each bar represents an agent.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Chart shows</td><td>Bars for each agent with token usage</td></tr>
+        <tr><td>Colored bars</td><td>Each bar has a distinct color from the palette</td></tr>
+        <tr><td>Agent names</td><td>X-axis labels show agent names</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-O04 -->
+<div class="test-case" id="tc-o04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-O04</span>
+    <span class="tc-title">View Budget Alert Banners</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify budget warning/exceeded banners appear at the top of the page.</p>
+    <ol class="steps">
+      <li>Ensure at least one budget exists with usage near or above the warn threshold.</li>
+      <li>Navigate to Cost Management page.</li>
+      <li>Observe the colored alert banners above the tabs.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Exceeded budget</td><td>🔴 Red banner: "Budget exceeded! XX% tokens, XX% cost · BLOCKING REQUESTS"</td></tr>
+        <tr><td>Warning budget</td><td>🟡 Orange banner: "Approaching limit: XX% tokens, XX% cost"</td></tr>
+        <tr><td>Healthy budget</td><td>No banner (only exceeded and warning budgets show alerts)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-O05 -->
+<div class="test-case" id="tc-o05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-O05</span>
+    <span class="tc-title">Budget Forecasting Display</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the forecasting section shows burn rate and projected overages.</p>
+    <ol class="steps">
+      <li>In the Overview tab, scroll to the "Forecasting" section.</li>
+      <li>Verify forecast cards appear for active budgets with usage &gt; 0.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Daily burn rate</td><td>Shows tokens/day and cost/day based on current consumption</td></tr>
+        <tr><td>Days remaining</td><td>Estimated days until budget exhausted</td></tr>
+        <tr><td>"Will exceed" warning</td><td>Red text if projected to overshoot before period ends</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-O06 -->
+<div class="test-case" id="tc-o06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-O06</span>
+    <span class="tc-title">Export Usage Report CSV</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Export the per-agent usage data as CSV.</p>
+    <ol class="steps">
+      <li>Click the <strong>"⬇ Export CSV"</strong> button at the top of the Cost Management page.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>File downloaded</td><td><span class="inline-code">cost_report.csv</span></td></tr>
+        <tr><td>CSV headers</td><td>agent, requests, total_tokens, input_tokens, output_tokens, cost_cents</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 4 — BUDGET HISTORY & FORECASTING   -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s4"><span class="section-num">04</span> Budget History &amp; Forecasting</h2>
+
+<p>The <strong>Budget History</strong> tab shows archived period data for completed budget cycles. When a budget period resets, the previous period's usage is archived for auditing.</p>
+
+<!-- TC-H01 -->
+<div class="test-case open" id="tc-h01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H01</span>
+    <span class="tc-title">View Budget History Table</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify historical budget data is displayed correctly.</p>
+    <ol class="steps">
+      <li>Navigate to <strong>Cost Management → Budget History</strong> tab.</li>
+      <li>Observe the table columns and data.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Columns</td><td>Budget, Scope, Period, Dates, Tokens Used, Cost, Utilization</td></tr>
+        <tr><td>Date range</td><td>Each row shows start – end dates for the archived period</td></tr>
+        <tr><td>Utilization bar</td><td>Color-coded progress bar (green &lt;70%, orange 70-89%, red ≥90%)</td></tr>
+        <tr><td>Percentage</td><td>Numeric percentage next to the bar</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-H02 -->
+<div class="test-case" id="tc-h02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-H02</span>
+    <span class="tc-title">Empty History State</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the empty state when no history records exist.</p>
+    <ol class="steps">
+      <li>If no budget periods have been archived yet, navigate to the Budget History tab.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Empty state</td><td>"No budget history records" message displayed</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 5 — GATEWAY BUDGET ENFORCEMENT     -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s5"><span class="section-num">05</span> Gateway Budget Enforcement</h2>
+
+<p>When a budget is set to <strong>hard limit</strong> and is exceeded, the gateway middleware blocks requests. When the budget is a <strong>soft limit</strong>, requests proceed but a warning is logged.</p>
+
+<div class="flow"><span class="highlight">Agent Request</span> → <span class="cyan">Auth Check</span> → <span class="cyan">Guardrails</span> → <span class="orange">Budget Checker</span> → │
+                                                              │
+                    ┌── Budget OK ─────────────────────── <span class="green">✓ Forward to Agent</span>
+                    │
+                    ├── Soft limit exceeded ──────── <span class="orange">⚠ Log warning, forward</span>
+                    │
+                    └── Hard limit exceeded ──────── <span class="red">✗ 429 Too Many Requests</span></div>
+
+<!-- TC-E01 -->
+<div class="test-case open" id="tc-e01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-E01</span>
+    <span class="tc-title">Hard Limit Blocks Request (429)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that exceeding a hard budget limit results in a 429 response.</p>
+    <ol class="steps">
+      <li>Create a budget with a very low token limit (e.g., 100 tokens) and <strong>hard limit = true</strong>.</li>
+      <li>Send a request through the gateway that would consume &gt; 100 tokens.</li>
+      <li>Observe the response.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td><span class="badge red">429 Too Many Requests</span></td></tr>
+        <tr><td>Response body</td><td>Contains "Budget exceeded" message with budget name</td></tr>
+        <tr><td>Audit log</td><td>Event logged with type "budget_enforcement"</td></tr>
+        <tr><td>Alert banner</td><td>🔴 Appears on Cost Management page: "BLOCKING REQUESTS"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-E02 -->
+<div class="test-case" id="tc-e02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-E02</span>
+    <span class="tc-title">Soft Limit Logs Warning (Request Passes)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that exceeding a soft budget limit allows the request but logs a warning.</p>
+    <ol class="steps">
+      <li>Create a budget with low token limit and <strong>hard limit = false</strong>.</li>
+      <li>Send a request that exceeds the budget.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td><span class="badge green">200 OK</span> (request proceeds)</td></tr>
+        <tr><td>Warning logged</td><td>Backend logs contain "Budget warning" entry</td></tr>
+        <tr><td>Alert banner</td><td>🟡 Shows "Approaching limit" warning</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-E03 -->
+<div class="test-case" id="tc-e03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-E03</span>
+    <span class="tc-title">Module Disabled — Budget Check Skipped</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify budget enforcement is skipped when Cost Management module is disabled.</p>
+    <ol class="steps">
+      <li>Go to <strong>Settings → Module Toggles</strong>.</li>
+      <li>Disable the <strong>Cost Management</strong> module.</li>
+      <li>Send a request through the gateway (even if budgets are exceeded).</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Request proceeds</td><td><span class="badge green">200 OK</span> regardless of budget status</td></tr>
+        <tr><td>No budget check</td><td>No budget-related logs in backend output</td></tr>
+      </table>
+    </div>
+    <div class="alert warn">
+      <strong>⚠️ Cleanup</strong> Re-enable the Cost Management module after this test.
+    </div>
+  </div>
+</div>
+
+<!-- TC-E04 -->
+<div class="test-case" id="tc-e04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-E04</span>
+    <span class="tc-title">Budget Counter Updates After Request</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that budget counters (current_tokens, current_cost_cents) increment after a gateway call.</p>
+    <ol class="steps">
+      <li>Note the current token count on a budget in the Budgets tab.</li>
+      <li>Send a request through the gateway for an agent/scope covered by this budget.</li>
+      <li>Refresh the Cost Management page.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Token counter</td><td>Increased by the number of tokens consumed (or estimated)</td></tr>
+        <tr><td>Cost counter</td><td>Increased by the estimated cost cents</td></tr>
+        <tr><td>Utilization bar</td><td>Progress percentage has increased</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 6 — TOKEN TRACKING & ESTIMATION    -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s6"><span class="section-num">06</span> Token Tracking &amp; Estimation</h2>
+
+<p>The gateway now <strong>always tracks tokens</strong> for every agent call. When the agent returns real token counts, those are used. When it doesn't (e.g., MCP agents), tokens are estimated from payload size (~4 chars per token). Records are flagged with <span class="inline-code">is_estimated</span>.</p>
+
+<div class="card purple">
+  <div class="card-title">Token Estimation Logic</div>
+  <table class="io-table">
+    <tr><th>Scenario</th><th>Behavior</th></tr>
+    <tr><td>Agent returns <code>usage.input_tokens</code></td><td>Real tokens used, <span class="inline-code">is_estimated = false</span></td></tr>
+    <tr><td>Agent returns no usage data</td><td>Estimated from payload: <span class="inline-code">Math.ceil(text.length / 4)</span>, <span class="inline-code">is_estimated = true</span></td></tr>
+    <tr><td>MCP agent call</td><td>Extracts from <code>callResult._meta.usage</code> if available, else estimates</td></tr>
+  </table>
+</div>
+
+<!-- TC-T01 -->
+<div class="test-case open" id="tc-t01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-T01</span>
+    <span class="tc-title">Agent With Usage Data — Real Token Recording</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> When an agent returns token usage in its response, verify real tokens are recorded.</p>
+    <ol class="steps">
+      <li>Set up an agent that returns <span class="inline-code">usage: { input_tokens: 150, output_tokens: 300, model: "gpt-4o" }</span> in its response.</li>
+      <li>Send a request through the gateway.</li>
+      <li>Query the database: <span class="inline-code">SELECT * FROM cost_records ORDER BY recorded_at DESC LIMIT 1;</span></li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Expected Value</th></tr>
+        <tr><td>input_tokens</td><td>150</td></tr>
+        <tr><td>output_tokens</td><td>300</td></tr>
+        <tr><td>total_tokens</td><td>450</td></tr>
+        <tr><td>model_name</td><td>gpt-4o</td></tr>
+        <tr><td>is_estimated</td><td><span class="badge green">false</span></td></tr>
+        <tr><td>cost_cents</td><td>&gt; 0 (auto-estimated from pricing table)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-T02 -->
+<div class="test-case" id="tc-t02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-T02</span>
+    <span class="tc-title">Agent Without Usage Data — Token Estimation</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> When an agent does NOT return token usage, verify estimation from payload size.</p>
+    <ol class="steps">
+      <li>Set up an agent that returns data but <strong>no usage object</strong> (or <span class="inline-code">usage: null</span>).</li>
+      <li>Send a request with a body of ~400 characters.</li>
+      <li>Query: <span class="inline-code">SELECT * FROM cost_records ORDER BY recorded_at DESC LIMIT 1;</span></li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Expected Value</th></tr>
+        <tr><td>input_tokens</td><td>~100 (400 chars / 4)</td></tr>
+        <tr><td>output_tokens</td><td>&gt; 0 (estimated from response size)</td></tr>
+        <tr><td>is_estimated</td><td><span class="badge orange">true</span></td></tr>
+        <tr><td>cost_cents</td><td>0 (no model name → can't estimate cost)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-T03 -->
+<div class="test-case" id="tc-t03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-T03</span>
+    <span class="tc-title">Cost Auto-Estimation from Model Pricing</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that cost is auto-estimated using the model_pricing table when agent doesn't return cost_cents.</p>
+    <ol class="steps">
+      <li>Confirm <span class="inline-code">gpt-4o</span> exists in model_pricing with input: 250 ¢/1M, output: 1000 ¢/1M.</li>
+      <li>Send a request that returns <span class="inline-code">usage: { input_tokens: 1000, output_tokens: 500, model: "gpt-4o" }</span> but <strong>no cost_cents</strong>.</li>
+      <li>Check the cost_records entry.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Field</th><th>Expected Calculation</th></tr>
+        <tr><td>Input cost</td><td>1000 × 250 / 1,000,000 = 0.25 ¢</td></tr>
+        <tr><td>Output cost</td><td>500 × 1000 / 1,000,000 = 0.50 ¢</td></tr>
+        <tr><td>Total cost_cents</td><td>≈ 1 (rounded from 0.75)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-T04 -->
+<div class="test-case" id="tc-t04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-T04</span>
+    <span class="tc-title">Unknown Model — Cost Falls Back to 0</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify graceful fallback when model name is not in the pricing table.</p>
+    <ol class="steps">
+      <li>Send a request with usage: <span class="inline-code">{ model: "custom-internal-model", input_tokens: 500, output_tokens: 200 }</span>.</li>
+      <li>Check cost_records.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>cost_cents</td><td>0 (model not found in pricing table)</td></tr>
+        <tr><td>Tokens still recorded</td><td>input_tokens = 500, output_tokens = 200</td></tr>
+        <tr><td>No error</td><td>Request proceeds normally, no exception thrown</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-T05 -->
+<div class="test-case" id="tc-t05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-T05</span>
+    <span class="tc-title">Workflow Multi-Step — Each Step Tracked</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that each step in a multi-step workflow creates its own cost_record.</p>
+    <ol class="steps">
+      <li>Create a workflow with 3 agents (steps).</li>
+      <li>Invoke the workflow via the gateway.</li>
+      <li>Query: <span class="inline-code">SELECT agent_id, workflow_id, input_tokens, is_estimated FROM cost_records WHERE trace_id = '&lt;trace&gt;';</span></li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Number of cost_records</td><td>3 (one per workflow step)</td></tr>
+        <tr><td>Each has workflow_id</td><td>All share the same workflow UUID</td></tr>
+        <tr><td>Each has agent_id</td><td>Different agent UUID per step</td></tr>
+        <tr><td>All have same trace_id</td><td>Yes — tied to the single gateway request</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-T06 -->
+<div class="test-case" id="tc-t06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-T06</span>
+    <span class="tc-title">Pricing Cache Refresh After Edit</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> After editing model pricing, verify the in-memory cache is invalidated and new prices take effect.</p>
+    <ol class="steps">
+      <li>Edit <span class="inline-code">gpt-4o</span> pricing: set input to 999, output to 9999.</li>
+      <li>Immediately send a request with model = "gpt-4o".</li>
+      <li>Check the cost_cents in the new cost_record.</li>
+    </ol>
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Assertion</th><th>Expected</th></tr>
+        <tr><td>Cost uses new pricing</td><td>cost_cents reflects the updated 999/9999 rates</td></tr>
+        <tr><td>Cache invalidated immediately</td><td>CRUD operations invalidate cache (no need to wait 5 min)</td></tr>
+      </table>
+    </div>
+    <div class="alert success">
+      <strong>💡 Implementation Note</strong>
+      The pricing cache is invalidated on every create/update/delete operation via <code>_invalidatePricingCache()</code>.
+      The 5-minute TTL only applies to repeated reads without writes.
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- APPENDIX — FEATURE QUICK REFERENCE          -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="appendix"><span class="section-num">A</span> Feature Quick Reference</h2>
+
+<div class="card green">
+  <div class="card-title">📊 API Endpoint Summary</div>
+  <table class="io-table">
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/cost/stats</span></td><td>Aggregate cost statistics</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/cost/report</span></td><td>Per-agent usage report</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/cost/daily?days=30</span></td><td>Daily usage trend data</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/cost/model-pricing</span></td><td>List all model pricing entries</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/cost/model-pricing</span></td><td>Add new model pricing</td></tr>
+    <tr><td><span class="badge orange">PUT</span></td><td><span class="inline-code">/cost/model-pricing/:id</span></td><td>Update model pricing</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/cost/model-pricing/:id</span></td><td>Delete model pricing</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/budgets</span></td><td>List all budgets</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/budgets</span></td><td>Create budget</td></tr>
+    <tr><td><span class="badge orange">PUT</span></td><td><span class="inline-code">/budgets/:id</span></td><td>Update budget</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/budgets/:id</span></td><td>Delete budget</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/budgets/alerts</span></td><td>Budget alerts (exceeded/warning)</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/budgets/:id/history</span></td><td>History for specific budget</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/budgets/history/all</span></td><td>All budget history</td></tr>
+  </table>
+</div>
+
+<div class="card blue">
+  <div class="card-title">🗄️ Database Tables</div>
+  <table class="io-table">
+    <tr><th>Table</th><th>Purpose</th></tr>
+    <tr><td><span class="inline-code">model_pricing</span></td><td>LLM model pricing data (vendor, input/output rates)</td></tr>
+    <tr><td><span class="inline-code">cost_records</span></td><td>Token usage records per request (with <span class="inline-code">is_estimated</span> flag)</td></tr>
+    <tr><td><span class="inline-code">budgets</span></td><td>Token/cost budgets with scope, period, limits</td></tr>
+    <tr><td><span class="inline-code">budget_history</span></td><td>Archived period data for completed budget cycles</td></tr>
+  </table>
+</div>
+
+<div class="card purple">
+  <div class="card-title">📋 Complete Test Case Index</div>
+  <table class="io-table">
+    <tr><th>ID</th><th>Test Case</th><th>Section</th><th>Priority</th></tr>
+    <tr><td>TC-B01</td><td>Create a Team Budget (Monthly)</td><td>Budgets</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-B02</td><td>Create a Global Budget (Quarterly)</td><td>Budgets</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-B03</td><td>Edit an Existing Budget</td><td>Budgets</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-B04</td><td>Delete a Budget</td><td>Budgets</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-B05</td><td>Create Budget with Missing Name</td><td>Budgets</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-B06</td><td>Create Agent-Scoped Budget</td><td>Budgets</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-M01</td><td>View Model Pricing Table</td><td>Pricing</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-M02</td><td>Add a New Model Pricing Entry</td><td>Pricing</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-M03</td><td>Add Duplicate Model Name</td><td>Pricing</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-M04</td><td>Edit Model Pricing</td><td>Pricing</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-M05</td><td>Delete a Model Pricing Entry</td><td>Pricing</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-M06</td><td>Export Model Pricing CSV</td><td>Pricing</td><td><span class="badge blue">Low</span></td></tr>
+    <tr><td>TC-M07</td><td>Add Model with Empty Name</td><td>Pricing</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-M08</td><td>Change Vendor on Existing Model</td><td>Pricing</td><td><span class="badge blue">Low</span></td></tr>
+    <tr><td>TC-O01</td><td>View Overview Stats Cards</td><td>Overview</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-O02</td><td>View Daily Usage Chart</td><td>Overview</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-O03</td><td>View Per-Agent Usage Bar Chart</td><td>Overview</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-O04</td><td>View Budget Alert Banners</td><td>Overview</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-O05</td><td>Budget Forecasting Display</td><td>Overview</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-O06</td><td>Export Usage Report CSV</td><td>Overview</td><td><span class="badge blue">Low</span></td></tr>
+    <tr><td>TC-H01</td><td>View Budget History Table</td><td>History</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-H02</td><td>Empty History State</td><td>History</td><td><span class="badge blue">Low</span></td></tr>
+    <tr><td>TC-E01</td><td>Hard Limit Blocks Request (429)</td><td>Enforcement</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-E02</td><td>Soft Limit Logs Warning</td><td>Enforcement</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-E03</td><td>Module Disabled — Skip Check</td><td>Enforcement</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-E04</td><td>Budget Counter Updates</td><td>Enforcement</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-T01</td><td>Real Token Recording</td><td>Tracking</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-T02</td><td>Token Estimation Fallback</td><td>Tracking</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-T03</td><td>Cost Auto-Estimation</td><td>Tracking</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-T04</td><td>Unknown Model Fallback</td><td>Tracking</td><td><span class="badge orange">Medium</span></td></tr>
+    <tr><td>TC-T05</td><td>Workflow Multi-Step Tracking</td><td>Tracking</td><td><span class="badge red">High</span></td></tr>
+    <tr><td>TC-T06</td><td>Pricing Cache Refresh</td><td>Tracking</td><td><span class="badge orange">Medium</span></td></tr>
+  </table>
+</div>
+
+</div><!-- /container -->
+
+<script>
+function toggleTC(header) {
+  const tc = header.closest('.test-case');
+  tc.classList.toggle('open');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// Auto-open first test case in each section
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.test-case').forEach(tc => {
+    // Only keep explicitly marked ones open
+  });
+});
+</script>
+
+</body>
+</html>

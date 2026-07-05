@@ -255,10 +255,32 @@ router.get('/cost/daily', async (req, res, next) => {
 
 router.get('/cost/model-pricing', async (req, res, next) => {
     try {
-        const pricing = costService.getModelPricing();
+        const pricing = await costService.getModelPricing();
         res.json({ success: true, data: pricing });
     } catch (err) { next(err); }
 });
+
+router.post('/cost/model-pricing', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await costService.createModelPricing(req.body);
+        res.status(201).json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.put('/cost/model-pricing/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await costService.updateModelPricing(req.params.id, req.body);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.delete('/cost/model-pricing/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await costService.deleteModelPricing(req.params.id);
+        res.json({ success: true, message: 'Model pricing deleted' });
+    } catch (err) { next(err); }
+});
+
 
 router.get('/budgets/alerts', async (req, res, next) => {
     try {

@@ -3,55 +3,65 @@ const logger = require('../config/logger');
 const { AppError } = require('../registry/service');
 
 // ============================================
-// MODEL PRICING TABLE (cost per 1M tokens, in cents)
-// Used to auto-estimate cost when the upstream agent
-// does not return cost_cents in its usage response.
+// MODEL PRICING — Database-driven with in-memory cache
+// Pricing data lives in the model_pricing table.
+// Cache refreshes every 5 minutes for performance.
 // ============================================
-const MODEL_PRICING = {
-    // OpenAI
-    'gpt-4o':             { input: 250,  output: 1000 },
-    'gpt-4o-mini':        { input: 15,   output: 60   },
-    'gpt-4-turbo':        { input: 1000, output: 3000 },
-    'gpt-4':              { input: 3000, output: 6000 },
-    'gpt-3.5-turbo':      { input: 50,   output: 150  },
-    'o1':                 { input: 1500, output: 6000 },
-    'o1-mini':            { input: 300,  output: 1200 },
-    'o3-mini':            { input: 110,  output: 440  },
-
-    // Anthropic
-    'claude-sonnet-4-20250514':  { input: 300,  output: 1500 },
-    'claude-3-5-sonnet-20241022': { input: 300,  output: 1500 },
-    'claude-3-5-haiku-20241022': { input: 80,   output: 400  },
-    'claude-3-opus-20240229':    { input: 1500, output: 7500 },
-
-    // Google
-    'gemini-2.5-pro':     { input: 125,  output: 1000 },
-    'gemini-2.5-flash':   { input: 15,   output: 60   },
-    'gemini-2.0-flash':   { input: 10,   output: 40   },
-    'gemini-1.5-pro':     { input: 125,  output: 500  },
-    'gemini-1.5-flash':   { input: 7.5,  output: 30   },
-
-    // Meta / Open-source (typical hosted pricing)
-    'llama-3.1-70b':      { input: 88,   output: 88   },
-    'llama-3.1-8b':       { input: 18,   output: 18   },
-    'mixtral-8x7b':       { input: 24,   output: 24   },
-};
+let _pricingCache = null;
+let _pricingCacheTime = 0;
+const PRICING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 class CostService {
     /**
-     * Estimate cost in cents from token counts and model name.
-     * Uses the MODEL_PRICING lookup table. Falls back to 0 if model unknown.
+     * Load pricing data from DB with in-memory caching.
+     * Returns a map of { modelName: { input, output } }.
      */
-    estimateCost(modelName, inputTokens, outputTokens) {
+    async _loadPricing() {
+        if (_pricingCache && (Date.now() - _pricingCacheTime) < PRICING_CACHE_TTL) {
+            return _pricingCache;
+        }
+        try {
+            const { rows } = await db.query(
+                'SELECT model_name, input_per_1m, output_per_1m FROM model_pricing WHERE is_active = true'
+            );
+            _pricingCache = {};
+            for (const r of rows) {
+                _pricingCache[r.model_name] = {
+                    input: parseFloat(r.input_per_1m),
+                    output: parseFloat(r.output_per_1m),
+                };
+            }
+            _pricingCacheTime = Date.now();
+            return _pricingCache;
+        } catch (err) {
+            logger.warn('Could not load model pricing from DB, using empty cache:', err.message);
+            return _pricingCache || {};
+        }
+    }
+
+    /** Invalidate the pricing cache (call after CRUD ops). */
+    _invalidatePricingCache() {
+        _pricingCache = null;
+        _pricingCacheTime = 0;
+    }
+
+    /**
+     * Estimate cost in cents from token counts and model name.
+     * Uses the database-backed pricing table with caching.
+     * Falls back to 0 if model unknown.
+     */
+    async estimateCost(modelName, inputTokens, outputTokens) {
         if (!modelName) return 0;
 
+        const pricingTable = await this._loadPricing();
+
         // Try exact match first, then partial match
-        const key = Object.keys(MODEL_PRICING).find(k =>
+        const key = Object.keys(pricingTable).find(k =>
             modelName === k || modelName.startsWith(k) || modelName.includes(k)
         );
         if (!key) return 0;
 
-        const pricing = MODEL_PRICING[key];
+        const pricing = pricingTable[key];
         // Pricing is per 1M tokens, convert to per-token then to cents
         const inputCost = (inputTokens || 0) * pricing.input / 1000000;
         const outputCost = (outputTokens || 0) * pricing.output / 1000000;
@@ -59,14 +69,76 @@ class CostService {
     }
 
     /**
-     * Get the model pricing table for display in the admin UI.
+     * Estimate token count from text using the ~4 chars per token heuristic.
+     * This is a rough approximation (within ~20% for English text).
+     * Used as fallback when agents don't return real token counts.
      */
-    getModelPricing() {
-        return Object.entries(MODEL_PRICING).map(([model, pricing]) => ({
-            model,
-            inputPer1M: pricing.input,
-            outputPer1M: pricing.output,
+    estimateTokens(text) {
+        if (!text) return 0;
+        return Math.ceil(text.length / 4);
+    }
+
+    /**
+     * Get the model pricing table for display in the admin UI.
+     * Queries the database directly (not cached) for full data including id, vendor, active status.
+     */
+    async getModelPricing() {
+        const { rows } = await db.query(
+            'SELECT id, model_name, vendor, input_per_1m, output_per_1m, is_active, created_at, updated_at FROM model_pricing ORDER BY vendor, model_name'
+        );
+        return rows.map(r => ({
+            id: r.id,
+            model: r.model_name,
+            vendor: r.vendor,
+            inputPer1M: parseFloat(r.input_per_1m),
+            outputPer1M: parseFloat(r.output_per_1m),
+            isActive: r.is_active,
         }));
+    }
+
+    // ── Model Pricing CRUD ──────────────────
+
+    async createModelPricing(data) {
+        const result = await db.query(
+            `INSERT INTO model_pricing (model_name, vendor, input_per_1m, output_per_1m, is_active)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [data.modelName, data.vendor || 'unknown', data.inputPer1M, data.outputPer1M, data.isActive !== false]
+        );
+        this._invalidatePricingCache();
+        return result.rows[0];
+    }
+
+    async updateModelPricing(id, updates) {
+        const fields = [];
+        const params = [];
+        let idx = 1;
+
+        if (updates.modelName) { fields.push(`model_name = $${idx++}`); params.push(updates.modelName); }
+        if (updates.vendor) { fields.push(`vendor = $${idx++}`); params.push(updates.vendor); }
+        if (updates.inputPer1M !== undefined) { fields.push(`input_per_1m = $${idx++}`); params.push(updates.inputPer1M); }
+        if (updates.outputPer1M !== undefined) { fields.push(`output_per_1m = $${idx++}`); params.push(updates.outputPer1M); }
+        if (updates.isActive !== undefined) { fields.push(`is_active = $${idx++}`); params.push(updates.isActive); }
+
+        if (fields.length === 0) return null;
+
+        fields.push('updated_at = NOW()');
+        params.push(id);
+
+        const result = await db.query(
+            `UPDATE model_pricing SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+            params
+        );
+        this._invalidatePricingCache();
+        return result.rows[0];
+    }
+
+    async deleteModelPricing(id) {
+        const result = await db.query('DELETE FROM model_pricing WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+            throw new AppError('Model pricing not found', 404);
+        }
+        this._invalidatePricingCache();
+        return result.rows[0];
     }
 
     /**
@@ -78,6 +150,7 @@ class CostService {
             traceId, agentId, workflowId, userId,
             teamId, department,
             inputTokens, outputTokens, costCents, modelName,
+            estimated,
         } = usageData;
 
         const totalTokens = (inputTokens || 0) + (outputTokens || 0);
@@ -85,14 +158,14 @@ class CostService {
         // Auto-estimate cost if upstream didn't provide it
         const finalCostCents = costCents > 0
             ? costCents
-            : this.estimateCost(modelName, inputTokens, outputTokens);
+            : await this.estimateCost(modelName, inputTokens, outputTokens);
 
-        // Store the record
+        // Store the record (with is_estimated flag)
         await db.query(
-            `INSERT INTO cost_records (trace_id, agent_id, workflow_id, user_id, input_tokens, output_tokens, total_tokens, cost_cents, model_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            `INSERT INTO cost_records (trace_id, agent_id, workflow_id, user_id, input_tokens, output_tokens, total_tokens, cost_cents, model_name, is_estimated)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
             [traceId, agentId || null, workflowId || null, userId || null,
-                inputTokens || 0, outputTokens || 0, totalTokens, finalCostCents, modelName || null]
+                inputTokens || 0, outputTokens || 0, totalTokens, finalCostCents, modelName || null, estimated || false]
         );
 
         // Update budget counters for all matching scopes (including agent-scoped budgets)
@@ -126,31 +199,37 @@ class CostService {
                     continue;
                 }
 
+                // Parse numeric values — PostgreSQL returns bigint/numeric as strings
+                const currentTokens = parseInt(budget.current_tokens) || 0;
+                const tokenLimit = parseInt(budget.token_limit) || 0;
+                const currentCostCents = parseInt(budget.current_cost_cents) || 0;
+                const costLimitCents = parseInt(budget.cost_limit_cents) || 0;
+
                 // Check token limit
-                if (budget.token_limit && budget.current_tokens >= budget.token_limit) {
+                if (tokenLimit > 0 && currentTokens >= tokenLimit) {
                     if (budget.hard_limit) {
                         return {
                             allowed: false,
-                            reason: `Token budget exceeded for ${scope.type} "${scope.id}" (${budget.current_tokens}/${budget.token_limit})`,
+                            reason: `Token budget exceeded for ${scope.type} "${scope.id}" (${currentTokens}/${tokenLimit})`,
                             budget,
                         };
                     }
                 }
 
                 // Check cost limit
-                if (budget.cost_limit_cents && budget.current_cost_cents >= budget.cost_limit_cents) {
+                if (costLimitCents > 0 && currentCostCents >= costLimitCents) {
                     if (budget.hard_limit) {
                         return {
                             allowed: false,
-                            reason: `Cost budget exceeded for ${scope.type} "${scope.id}" ($${(budget.current_cost_cents / 100).toFixed(2)}/$${(budget.cost_limit_cents / 100).toFixed(2)})`,
+                            reason: `Cost budget exceeded for ${scope.type} "${scope.id}" ($${(currentCostCents / 100).toFixed(2)}/$${(costLimitCents / 100).toFixed(2)})`,
                             budget,
                         };
                     }
                 }
 
                 // Check warn threshold
-                if (budget.token_limit) {
-                    const usage = budget.current_tokens / budget.token_limit;
+                if (tokenLimit > 0) {
+                    const usage = currentTokens / tokenLimit;
                     if (usage >= parseFloat(budget.warn_threshold)) {
                         logger.warn(`Budget warning: ${scope.type} "${scope.id}" at ${(usage * 100).toFixed(1)}% token usage`);
                     }

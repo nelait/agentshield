@@ -124,7 +124,7 @@ async function invokeMcpAgent(endpointUrl, body) {
                     })),
                     result: callResult || null,
                 },
-                usage: null,
+                usage: callResult?._meta?.usage || callResult?.usage || null,
             };
         } catch (err) {
             span.recordException(err);

@@ -51,29 +51,35 @@ router.post('/agents/:agentSlug/invoke', async (req, res, next) => {
 
             span.setAttribute('agentshield.agent.latency_ms', latencyMs);
 
-            // Track cost/tokens if available
-            if (response.usage) {
-                const inputTokens = response.usage.input_tokens || response.usage.prompt_tokens || 0;
-                const outputTokens = response.usage.output_tokens || response.usage.completion_tokens || 0;
+            // Always track cost/tokens (estimate if agent didn't provide)
+            const inputTokens = response.usage?.input_tokens || response.usage?.prompt_tokens || 0;
+            const outputTokens = response.usage?.output_tokens || response.usage?.completion_tokens || 0;
+            const modelName = response.usage?.model || null;
 
-                span.setAttributes({
-                    'gen_ai.usage.input_tokens': inputTokens,
-                    'gen_ai.usage.output_tokens': outputTokens,
-                    'gen_ai.usage.total_tokens': inputTokens + outputTokens,
-                });
+            // If agent didn't return token counts, estimate from payload sizes
+            const finalInput = inputTokens > 0 ? inputTokens : costService.estimateTokens(JSON.stringify(req.body));
+            const finalOutput = outputTokens > 0 ? outputTokens : costService.estimateTokens(JSON.stringify(response.data));
+            const isEstimated = inputTokens === 0;
 
-                await costService.recordUsage({
-                    traceId: req.traceId,
-                    agentId: agent.id,
-                    userId: req.user?.id,
-                    teamId: req.user?.teamId,
-                    department: req.user?.department,
-                    inputTokens,
-                    outputTokens,
-                    costCents: response.usage.cost_cents || 0,
-                    modelName: response.usage.model || null,
-                }).catch(err => logger.error('Cost tracking error:', err));
-            }
+            span.setAttributes({
+                'gen_ai.usage.input_tokens': finalInput,
+                'gen_ai.usage.output_tokens': finalOutput,
+                'gen_ai.usage.total_tokens': finalInput + finalOutput,
+                'gen_ai.usage.is_estimated': isEstimated,
+            });
+
+            await costService.recordUsage({
+                traceId: req.traceId,
+                agentId: agent.id,
+                userId: req.user?.id,
+                teamId: req.user?.teamId,
+                department: req.user?.department,
+                inputTokens: finalInput,
+                outputTokens: finalOutput,
+                costCents: response.usage?.cost_cents || 0,
+                modelName,
+                estimated: isEstimated,
+            }).catch(err => logger.error('Cost tracking error:', err));
 
             span.setStatus({ code: SpanStatusCode.OK });
             res.json({
@@ -164,21 +170,26 @@ router.post('/workflows/:workflowSlug/run', async (req, res, next) => {
 
                         stepSpan.setAttribute('agentshield.workflow.step.latency_ms', stepLatency);
 
-                        // Track cost
-                        if (response.usage) {
-                            await costService.recordUsage({
-                                traceId: req.traceId,
-                                agentId: agent.id,
-                                workflowId: workflow.id,
-                                userId: req.user?.id,
-                                teamId: req.user?.teamId,
-                                department: req.user?.department,
-                                inputTokens: response.usage.input_tokens || 0,
-                                outputTokens: response.usage.output_tokens || 0,
-                                costCents: response.usage.cost_cents || 0,
-                                modelName: response.usage.model || null,
-                            }).catch(err => logger.error('Cost tracking error:', err));
-                        }
+                        // Always track cost/tokens (estimate if not provided)
+                        const stepInputTokens = response.usage?.input_tokens || response.usage?.prompt_tokens || 0;
+                        const stepOutputTokens = response.usage?.output_tokens || response.usage?.completion_tokens || 0;
+                        const stepFinalInput = stepInputTokens > 0 ? stepInputTokens : costService.estimateTokens(JSON.stringify(currentInput));
+                        const stepFinalOutput = stepOutputTokens > 0 ? stepOutputTokens : costService.estimateTokens(JSON.stringify(response.data));
+                        const stepEstimated = stepInputTokens === 0;
+
+                        await costService.recordUsage({
+                            traceId: req.traceId,
+                            agentId: agent.id,
+                            workflowId: workflow.id,
+                            userId: req.user?.id,
+                            teamId: req.user?.teamId,
+                            department: req.user?.department,
+                            inputTokens: stepFinalInput,
+                            outputTokens: stepFinalOutput,
+                            costCents: response.usage?.cost_cents || 0,
+                            modelName: response.usage?.model || null,
+                            estimated: stepEstimated,
+                        }).catch(err => logger.error('Cost tracking error:', err));
 
                         results.push({
                             agentSlug: agent.slug,
