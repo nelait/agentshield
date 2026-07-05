@@ -71,6 +71,7 @@ router.post('/agents/:agentSlug/invoke', async (req, res, next) => {
             await costService.recordUsage({
                 traceId: req.traceId,
                 agentId: agent.id,
+                agentSlug: agent.slug,
                 userId: req.user?.id,
                 teamId: req.user?.teamId,
                 department: req.user?.department,
@@ -180,6 +181,7 @@ router.post('/workflows/:workflowSlug/run', async (req, res, next) => {
                         await costService.recordUsage({
                             traceId: req.traceId,
                             agentId: agent.id,
+                            agentSlug: agent.slug,
                             workflowId: workflow.id,
                             userId: req.user?.id,
                             teamId: req.user?.teamId,

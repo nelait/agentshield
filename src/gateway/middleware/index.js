@@ -281,10 +281,17 @@ function _budgetCheckerCore(req, res, next) {
         try {
             span.setAttribute('agentshield.budget.user_id', req.user?.id || 'anonymous');
 
+            // Extract agent slug from path for agent-scoped budget checks
+            // Path format: /api/v1/gateway/agents/:slug/invoke
+            const pathParts = req.path.split('/');
+            const agentIdx = pathParts.indexOf('agents');
+            const agentSlug = agentIdx >= 0 ? pathParts[agentIdx + 1] : null;
+
             const result = await costService.checkBudget(
                 req.user?.id,
                 req.user?.teamId,
-                req.user?.departmentId
+                req.user?.departmentId,
+                agentSlug  // Pass slug so agent-scoped budgets are checked
             );
 
             span.setAttribute('agentshield.budget.decision', result.allowed ? 'allow' : 'deny');

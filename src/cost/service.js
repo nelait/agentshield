@@ -243,9 +243,10 @@ class CostService {
     /**
      * Update budget counters after a request.
      * Increments ALL matching budget scopes: user, team, department, agent, and global.
+     * Agent budgets can be created with either UUID or slug as scope_id, so we match both.
      */
     async _updateBudgets(userContext, tokens, costCents) {
-        const { userId, teamId, department, agentId } = userContext || {};
+        const { userId, teamId, department, agentId, agentSlug } = userContext || {};
 
         // Collect all scope IDs that should be updated
         const scopeIds = [];
@@ -253,6 +254,7 @@ class CostService {
         if (teamId) scopeIds.push(teamId);
         if (department) scopeIds.push(department);
         if (agentId) scopeIds.push(agentId);
+        if (agentSlug) scopeIds.push(agentSlug); // Match budgets by slug too
         scopeIds.push('global'); // Always update global budgets
 
         if (scopeIds.length === 0) return;
