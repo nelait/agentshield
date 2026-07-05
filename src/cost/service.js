@@ -259,12 +259,13 @@ class CostService {
 
         if (scopeIds.length === 0) return;
 
+        // Use TRIM on scope_id to handle any whitespace in stored data
         await db.query(
             `UPDATE budgets SET
         current_tokens = current_tokens + $1,
         current_cost_cents = current_cost_cents + $2,
         updated_at = NOW()
-       WHERE scope_id = ANY($3) AND is_active = true`,
+       WHERE TRIM(scope_id) = ANY($3) AND is_active = true`,
             [tokens, costCents, scopeIds]
         );
     }
@@ -319,11 +320,12 @@ class CostService {
     // ============================================
 
     async createBudget(data) {
+        const scopeId = (data.scopeId || (data.scopeType === 'global' ? 'global' : data.scopeId) || '').trim();
         const result = await db.query(
             `INSERT INTO budgets (name, scope_type, scope_id, token_limit, cost_limit_cents, period, warn_threshold, hard_limit)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-            [data.name, data.scopeType, data.scopeId || (data.scopeType === 'global' ? 'global' : data.scopeId),
+            [data.name, data.scopeType, scopeId,
             data.tokenLimit || null,
             data.costLimitCents || null, data.period, data.warnThreshold || 0.80,
             data.hardLimit !== false]
@@ -342,6 +344,7 @@ class CostService {
         let idx = 1;
 
         if (updates.name) { fields.push(`name = $${idx++}`); params.push(updates.name); }
+        if (updates.scopeId !== undefined) { fields.push(`scope_id = $${idx++}`); params.push((updates.scopeId || '').trim()); }
         if (updates.tokenLimit !== undefined) { fields.push(`token_limit = $${idx++}`); params.push(updates.tokenLimit); }
         if (updates.costLimitCents !== undefined) { fields.push(`cost_limit_cents = $${idx++}`); params.push(updates.costLimitCents); }
         if (updates.warnThreshold !== undefined) { fields.push(`warn_threshold = $${idx++}`); params.push(updates.warnThreshold); }
