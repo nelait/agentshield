@@ -147,7 +147,7 @@ class CostService {
      */
     async recordUsage(usageData) {
         const {
-            traceId, agentId, workflowId, userId,
+            traceId, agentId, agentSlug, workflowId, userId,
             teamId, department,
             inputTokens, outputTokens, costCents, modelName,
             estimated,
@@ -169,7 +169,7 @@ class CostService {
         );
 
         // Update budget counters for all matching scopes (including agent-scoped budgets)
-        await this._updateBudgets({ userId, teamId, department, agentId }, totalTokens, finalCostCents);
+        await this._updateBudgets({ userId, teamId, department, agentId, agentSlug }, totalTokens, finalCostCents);
     }
 
     /**
