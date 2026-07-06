@@ -2,6 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const authService = require('./auth');
+const userService = require('./userService');
+const inviteService = require('./inviteService');
 const policyService = require('../policy/service');
 const workflowService = require('../workflow/service');
 const complianceService = require('../compliance/service');
@@ -24,7 +26,11 @@ const router = express.Router();
 router.post('/auth/login', async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        const result = await authService.login(email, password);
+        const meta = {
+            ip: req.headers['x-forwarded-for'] || req.connection?.remoteAddress || req.ip,
+            userAgent: req.headers['user-agent'] || null,
+        };
+        const result = await authService.login(email, password, meta);
         res.json({ success: true, data: result });
     } catch (err) { next(err); }
 });
@@ -1057,4 +1063,190 @@ router.get('/observability/health', requireRole('admin'), async (req, res) => {
     } catch (err) {
         res.json({ success: true, data: { exporterHealthy: false, error: err.message } });
     }
+});
+
+// ============================================
+// ADMIN — USER MANAGEMENT (admin+ only)
+// ============================================
+router.get('/admin/users', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await userService.listUsers(req.query);
+        res.json({ success: true, data: result.users, pagination: result.pagination });
+    } catch (err) { next(err); }
+});
+
+router.get('/admin/users/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        const user = await userService.getUser(req.params.id);
+        res.json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+router.post('/admin/users', requireRole('admin'), async (req, res, next) => {
+    try {
+        const user = await userService.createUser(req.body, req.user?.id);
+        res.status(201).json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+router.put('/admin/users/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        const user = await userService.updateUser(req.params.id, req.body, req.user?.id);
+        res.json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+router.patch('/admin/users/:id/toggle', requireRole('admin'), async (req, res, next) => {
+    try {
+        const user = await userService.toggleUserStatus(req.params.id, req.user?.id);
+        res.json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+router.post('/admin/users/:id/reset-password', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await userService.resetPassword(req.params.id, req.user?.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.delete('/admin/users/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await userService.deleteUser(req.params.id, req.user?.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Login history (admin sees all)
+router.get('/admin/login-history', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await userService.getAllLoginHistory(req.query);
+        res.json({ success: true, data: result.history, pagination: result.pagination });
+    } catch (err) { next(err); }
+});
+
+// User-specific login history
+router.get('/admin/users/:id/login-history', requireRole('admin'), async (req, res, next) => {
+    try {
+        const history = await userService.getLoginHistory(req.params.id);
+        res.json({ success: true, data: history });
+    } catch (err) { next(err); }
+});
+
+// User sessions
+router.get('/admin/users/:id/sessions', requireRole('admin'), async (req, res, next) => {
+    try {
+        const sessions = await userService.getActiveSessions(req.params.id);
+        res.json({ success: true, data: sessions });
+    } catch (err) { next(err); }
+});
+
+router.delete('/admin/users/:id/sessions', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await userService.revokeAllSessions(req.params.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.delete('/admin/users/:id/sessions/:sid', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await userService.revokeSession(req.params.sid);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// ADMIN — SELF-SERVICE PROFILE
+// ============================================
+router.get('/admin/profile', async (req, res, next) => {
+    try {
+        if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+        const user = await userService.getUser(req.user.id);
+        res.json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+router.put('/admin/profile', async (req, res, next) => {
+    try {
+        if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+        // Users can only update their own profile fields (not role)
+        const { name, phone, timezone, department } = req.body;
+        const user = await userService.updateUser(req.user.id, { name, phone, timezone, department }, req.user.id);
+        res.json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+router.post('/admin/profile/change-password', async (req, res, next) => {
+    try {
+        if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+        const { currentPassword, newPassword } = req.body;
+        const result = await userService.changePassword(req.user.id, currentPassword, newPassword);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+router.get('/admin/profile/login-history', async (req, res, next) => {
+    try {
+        if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+        const history = await userService.getLoginHistory(req.user.id);
+        res.json({ success: true, data: history });
+    } catch (err) { next(err); }
+});
+
+router.get('/admin/profile/sessions', async (req, res, next) => {
+    try {
+        if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+        const sessions = await userService.getActiveSessions(req.user.id);
+        res.json({ success: true, data: sessions });
+    } catch (err) { next(err); }
+});
+
+router.delete('/admin/profile/sessions/:sid', async (req, res, next) => {
+    try {
+        if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+        const result = await userService.revokeSession(req.params.sid, req.user.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// ADMIN — INVITATIONS
+// ============================================
+router.post('/admin/invitations', requireRole('admin'), async (req, res, next) => {
+    try {
+        const invite = await inviteService.createInvitation({ ...req.body, invitedBy: req.user?.id });
+        res.status(201).json({ success: true, data: invite });
+    } catch (err) { next(err); }
+});
+
+router.get('/admin/invitations', requireRole('admin'), async (req, res, next) => {
+    try {
+        const invites = await inviteService.listInvitations(req.query);
+        res.json({ success: true, data: invites });
+    } catch (err) { next(err); }
+});
+
+router.delete('/admin/invitations/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        const result = await inviteService.revokeInvitation(req.params.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Accept invitation (PUBLIC — no auth required)
+router.post('/admin/invitations/accept', async (req, res, next) => {
+    try {
+        const user = await inviteService.acceptInvitation(req.body);
+        res.status(201).json({ success: true, data: user });
+    } catch (err) { next(err); }
+});
+
+// ============================================
+// ADMIN — SYSTEM STATS (super_admin only)
+// ============================================
+router.get('/admin/system/stats', requireRole('admin'), async (req, res, next) => {
+    try {
+        const stats = await userService.getSystemStats();
+        res.json({ success: true, data: stats });
+    } catch (err) { next(err); }
 });

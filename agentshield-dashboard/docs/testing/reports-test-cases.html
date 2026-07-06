@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentShield — Reports Module Test Cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --card: #111827;
+  --card-hover: #1a2332;
+  --border: #1e293b;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --green: #10b981;
+  --green-bg: #064e3b;
+  --red: #ef4444;
+  --red-bg: #450a0a;
+  --orange: #f59e0b;
+  --orange-bg: #451a03;
+  --blue: #3b82f6;
+  --blue-bg: #1e3a5f;
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.15);
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-bright: #f8fafc;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.7;
+}
+.container { max-width:1100px; margin:0 auto; padding:2rem; }
+
+/* ── Hero ────────────────────────── */
+.hero {
+  text-align:center;
+  padding:3rem 2rem;
+  background:linear-gradient(135deg, #1b1a4b 0%, #0f172a 50%, #0a2f2e 100%);
+  border-bottom:1px solid var(--border);
+  margin-bottom:2rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before {
+  content:'';
+  position:absolute;
+  top:-50%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:radial-gradient(circle at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(16,185,129,0.06) 0%, transparent 50%);
+  animation:pulseGlow 8s ease-in-out infinite alternate;
+}
+@keyframes pulseGlow {
+  0% { opacity:0.5; }
+  100% { opacity:1; }
+}
+.hero h1 {
+  font-size:2.5rem;
+  font-weight:800;
+  background:linear-gradient(135deg, var(--accent-light), var(--green));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:0.5rem;
+  position:relative;
+}
+.hero .subtitle { color:var(--text-dim); font-size:1.1rem; position:relative; }
+.hero .meta {
+  margin-top:1rem;
+  display:flex;
+  gap:1.5rem;
+  justify-content:center;
+  flex-wrap:wrap;
+  position:relative;
+}
+.hero .meta span { color:var(--text-dim); font-size:0.85rem; }
+.hero .meta span strong { color:var(--accent-light); }
+
+/* ── Table of Contents ───────────── */
+.toc {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem 2rem;
+  margin-bottom:2.5rem;
+}
+.toc h2 { font-size:1.2rem; color:var(--accent-light); margin-bottom:1rem; border:none; padding:0; }
+.toc-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:0.4rem; }
+.toc a {
+  color:var(--text);
+  text-decoration:none;
+  font-size:0.9rem;
+  padding:0.4rem 0.6rem;
+  border-radius:6px;
+  display:block;
+  transition:all 0.2s;
+}
+.toc a:hover { background:var(--card-hover); color:var(--accent-light); transform:translateX(4px); }
+.toc a .num { color:var(--accent); font-weight:700; margin-right:0.4rem; }
+
+/* ── Headings ────────────────────── */
+h2 {
+  font-size:1.6rem;
+  color:var(--text-bright);
+  margin:2.5rem 0 1rem;
+  padding-bottom:0.5rem;
+  border-bottom:2px solid var(--accent);
+}
+h3 { font-size:1.25rem; color:var(--accent-light); margin:1.8rem 0 0.8rem; }
+h4 { font-size:1.05rem; color:var(--cyan); margin:1.2rem 0 0.6rem; }
+p { margin-bottom:1rem; }
+ul, ol { margin:0.5rem 0 1rem 1.5rem; }
+li { margin-bottom:0.3rem; }
+
+/* ── Cards ───────────────────────── */
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem;
+  margin-bottom:1.5rem;
+  transition:border-color 0.3s;
+}
+.card:hover { border-color:var(--accent); }
+.card.green { border-left:4px solid var(--green); }
+.card.red { border-left:4px solid var(--red); }
+.card.orange { border-left:4px solid var(--orange); }
+.card.blue { border-left:4px solid var(--blue); }
+.card.purple { border-left:4px solid var(--purple); }
+.card-title { font-weight:700; font-size:1.1rem; margin-bottom:0.5rem; }
+
+/* ── Test Case Card ──────────────── */
+.test-case {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:0;
+  margin-bottom:1.5rem;
+  overflow:hidden;
+  transition:all 0.3s;
+}
+.test-case:hover { border-color: rgba(99,102,241,0.5); box-shadow:0 0 20px rgba(99,102,241,0.08); }
+.test-case-header {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:1rem 1.5rem;
+  background:rgba(99,102,241,0.05);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.test-case-header:hover { background:rgba(99,102,241,0.1); }
+.tc-id {
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  font-size:0.75rem;
+  padding:0.25rem 0.6rem;
+  border-radius:6px;
+  white-space:nowrap;
+}
+.tc-title { font-weight:600; font-size:1rem; color:var(--text-bright); flex:1; }
+.tc-priority {
+  font-size:0.7rem;
+  font-weight:600;
+  padding:0.2rem 0.5rem;
+  border-radius:10px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.tc-priority.high { background:var(--red-bg); color:var(--red); }
+.tc-priority.medium { background:var(--orange-bg); color:var(--orange); }
+.tc-priority.low { background:var(--blue-bg); color:var(--blue); }
+.tc-chevron { color:var(--text-dim); font-size:1rem; transition:transform 0.3s; }
+.test-case.open .tc-chevron { transform:rotate(180deg); }
+.test-case-body { padding:1.5rem; display:none; }
+.test-case.open .test-case-body { display:block; }
+
+/* ── IO Tables ───────────────────── */
+.io-section { margin:1rem 0; }
+.io-label {
+  font-size:0.8rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--text-dim);
+  margin-bottom:0.5rem;
+}
+.io-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.io-table th {
+  background:rgba(99,102,241,0.1);
+  color:var(--accent-light);
+  font-weight:600;
+  text-align:left;
+  padding:0.6rem 1rem;
+  border:1px solid var(--border);
+  font-size:0.8rem;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.io-table td { padding:0.55rem 1rem; border:1px solid var(--border); vertical-align:top; }
+.io-table tr:nth-child(even) { background:rgba(99,102,241,0.03); }
+
+/* ── Code Blocks ─────────────────── */
+pre {
+  background:#0d1117;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:1rem 1.2rem;
+  overflow-x:auto;
+  margin:0.8rem 0 1.2rem;
+  font-size:0.83rem;
+  line-height:1.6;
+  position:relative;
+}
+code {
+  font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+  color:#e6edf3;
+}
+.inline-code {
+  background:#1e293b;
+  padding:0.15rem 0.45rem;
+  border-radius:4px;
+  font-size:0.83rem;
+  color:var(--cyan);
+  font-family:'JetBrains Mono','Fira Code',monospace;
+}
+
+/* ── Badges ──────────────────────── */
+.badge {
+  display:inline-block;
+  padding:0.15rem 0.6rem;
+  border-radius:20px;
+  font-size:0.75rem;
+  font-weight:600;
+}
+.badge.green { background:var(--green-bg); color:var(--green); }
+.badge.red { background:var(--red-bg); color:var(--red); }
+.badge.orange { background:var(--orange-bg); color:var(--orange); }
+.badge.blue { background:var(--blue-bg); color:var(--blue); }
+.badge.purple { background:var(--purple-bg); color:var(--purple); }
+
+/* ── Alerts ──────────────────────── */
+.alert { border-radius:8px; padding:1rem 1.2rem; margin:1rem 0; font-size:0.9rem; }
+.alert.info { background:rgba(59,130,246,0.1); border-left:4px solid var(--blue); }
+.alert.warn { background:rgba(245,158,11,0.1); border-left:4px solid var(--orange); }
+.alert.success { background:rgba(16,185,129,0.1); border-left:4px solid var(--green); }
+.alert.danger { background:rgba(239,68,68,0.1); border-left:4px solid var(--red); }
+.alert strong { display:block; margin-bottom:0.3rem; }
+
+/* ── Step List ───────────────────── */
+.steps { counter-reset:step; list-style:none; margin:1rem 0; padding:0; }
+.steps li {
+  counter-increment:step;
+  padding:0.6rem 0 0.6rem 3rem;
+  position:relative;
+  border-left:2px solid var(--border);
+  margin-left:1rem;
+}
+.steps li:last-child { border-left-color:transparent; }
+.steps li::before {
+  content:counter(step);
+  position:absolute;
+  left:-14px;
+  top:0.5rem;
+  width:26px;
+  height:26px;
+  background:var(--accent);
+  color:white;
+  font-size:0.75rem;
+  font-weight:700;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ── Verdict Badges ──────────────── */
+.verdict {
+  display:inline-flex;
+  align-items:center;
+  gap:0.3rem;
+  padding:0.2rem 0.7rem;
+  border-radius:6px;
+  font-size:0.8rem;
+  font-weight:600;
+}
+.verdict.pass { background:var(--green-bg); color:var(--green); }
+.verdict.fail { background:var(--red-bg); color:var(--red); }
+.verdict.warn { background:var(--orange-bg); color:var(--orange); }
+
+/* ── Summary Stats ───────────────── */
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:1rem;
+  margin:1.5rem 0;
+}
+.stat-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1.2rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+.stat-card .stat-num { font-size:2rem; font-weight:800; color:var(--accent-light); }
+.stat-card .stat-label { font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Copy Button ─────────────────── */
+.code-block { position:relative; }
+.copy-btn {
+  position:absolute;
+  top:0.5rem;
+  right:0.5rem;
+  background:var(--card);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  padding:0.3rem 0.6rem;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:0.72rem;
+  font-family:'Inter',sans-serif;
+  transition:all 0.2s;
+  z-index:1;
+}
+.copy-btn:hover { color:var(--accent-light); border-color:var(--accent); }
+
+/* ── Section Number ──────────────── */
+.section-num { color:var(--accent); font-weight:700; margin-right:0.5rem; }
+
+/* ── Report Category Grid ────────── */
+.rpt-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:1rem;
+  margin:1rem 0 1.5rem;
+}
+.rpt-chip {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.rpt-chip:hover { border-color:var(--accent); transform:translateY(-2px); }
+.rpt-chip .rpt-icon { font-size:1.5rem; margin-bottom:0.4rem; }
+.rpt-chip .rpt-name { font-size:0.85rem; font-weight:600; color:var(--text-bright); }
+.rpt-chip .rpt-desc { font-size:0.75rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Responsive ──────────────────── */
+@media(max-width:768px) {
+  .hero h1 { font-size:1.8rem; }
+  .toc-grid { grid-template-columns:1fr; }
+  .stats-grid { grid-template-columns:repeat(2, 1fr); }
+  .container { padding:1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ -->
+<!-- HERO                                    -->
+<!-- ════════════════════════════════════════ -->
+<div class="hero">
+  <h1>📊 Reports Module — Test Cases</h1>
+  <p class="subtitle">Step-by-Step Testing Guide for Report Generation, Charts, Exports &amp; Snapshots</p>
+  <div class="meta">
+    <span>📅 <strong>July 2026</strong></span>
+    <span>🔖 <strong>v1.0</strong></span>
+    <span>📋 <strong>35 Test Cases</strong></span>
+    <span>📦 <strong>agentshield-dashboard</strong></span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════ -->
+<!-- DOCUMENT OVERVIEW                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="alert info">
+  <strong>📘 About This Document</strong>
+  This document provides comprehensive, repeatable test cases for the AgentShield <strong>Reports</strong> module.
+  Each test case specifies exact inputs, step-by-step actions, and expected results.
+  Tests cover all 6 report categories: <strong>Security &amp; Access</strong>, <strong>Compliance &amp; Audit</strong>,
+  <strong>Cost &amp; Usage</strong>, <strong>Agent Performance</strong>, <strong>Guardrails</strong>, and <strong>Executive</strong>.
+  Tests can be executed via the <strong>Admin Dashboard UI</strong> or the <strong>REST API</strong>.
+</div>
+
+<!-- Test Summary Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-num">35</div>
+    <div class="stat-label">Total Test Cases</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">8</div>
+    <div class="stat-label">Test Sections</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">16</div>
+    <div class="stat-label">Report Types</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">6</div>
+    <div class="stat-label">Report Categories</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">2</div>
+    <div class="stat-label">Export Formats</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="toc">
+  <h2>📑 Table of Contents</h2>
+  <div class="toc-grid">
+    <a href="#s0"><span class="num">00</span> Prerequisites &amp; Setup</a>
+    <a href="#s1"><span class="num">01</span> Report Landing Page &amp; Navigation</a>
+    <a href="#s2"><span class="num">02</span> Security &amp; Access Reports</a>
+    <a href="#s3"><span class="num">03</span> Compliance &amp; Audit Reports</a>
+    <a href="#s4"><span class="num">04</span> Cost &amp; Usage Reports</a>
+    <a href="#s5"><span class="num">05</span> Agent Performance Reports</a>
+    <a href="#s6"><span class="num">06</span> Guardrails &amp; Executive Reports</a>
+    <a href="#s7"><span class="num">07</span> Export &amp; Snapshot Functionality</a>
+    <a href="#appendix"><span class="num">A</span> Report Types Quick Reference</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 0 — PREREQUISITES                  -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s0"><span class="section-num">00</span> Prerequisites &amp; Setup</h2>
+
+<div class="card blue">
+  <div class="card-title">🔧 Environment Requirements</div>
+  <ul>
+    <li>AgentShield backend running (local <span class="inline-code">npm run dev</span> or deployed at GCP)</li>
+    <li>PostgreSQL with all migrations applied through <span class="inline-code">012_reports.sql</span></li>
+    <li>At least one agent registered (e.g., <strong>GPT-4 Analyst</strong> or <strong>MCP Everything Server</strong>)</li>
+    <li>Some audit log data present (generate via Playground or Gateway invocations)</li>
+    <li>Logged in as <span class="badge blue">admin</span> role</li>
+    <li>Dashboard accessible at <span class="inline-code">http://localhost:5173</span> or production URL</li>
+  </ul>
+</div>
+
+<div class="alert warn">
+  <strong>⚠️ Before You Begin</strong>
+  The Reports module reads from existing data across all AgentShield tables (audit_log, cost_records, compliance_checks, agents, etc.).
+  Ensure you have real or seed data for the reports to return meaningful results.
+  Empty reports are valid but harder to visually verify chart rendering.
+</div>
+
+<h3>Report Categories</h3>
+<div class="rpt-grid">
+  <div class="rpt-chip">
+    <div class="rpt-icon">🛡️</div>
+    <div class="rpt-name">Security &amp; Access</div>
+    <div class="rpt-desc">Access decisions, policy effectiveness</div>
+  </div>
+  <div class="rpt-chip">
+    <div class="rpt-icon">📋</div>
+    <div class="rpt-name">Compliance &amp; Audit</div>
+    <div class="rpt-desc">Posture, PII, audit trail</div>
+  </div>
+  <div class="rpt-chip">
+    <div class="rpt-icon">💰</div>
+    <div class="rpt-name">Cost &amp; Usage</div>
+    <div class="rpt-desc">Spend, budgets, token analytics</div>
+  </div>
+  <div class="rpt-chip">
+    <div class="rpt-icon">🤖</div>
+    <div class="rpt-name">Agent Performance</div>
+    <div class="rpt-desc">Health, scorecards, invocations</div>
+  </div>
+  <div class="rpt-chip">
+    <div class="rpt-icon">🚧</div>
+    <div class="rpt-name">Guardrails</div>
+    <div class="rpt-desc">Violations, coverage analysis</div>
+  </div>
+  <div class="rpt-chip">
+    <div class="rpt-icon">📊</div>
+    <div class="rpt-name">Executive</div>
+    <div class="rpt-desc">Governance posture, workflow execution</div>
+  </div>
+</div>
+
+<h3>API Base URL</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Local development
+BASE_URL=http://localhost:3000/api/v1
+
+# Production (GCP)
+BASE_URL=https://&lt;your-cloud-run-url&gt;/api/v1</code></pre>
+</div>
+
+<h3>Authentication Header</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Get token via login
+curl -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"admin123"}'
+
+# Use token in subsequent requests
+AUTH="Authorization: Bearer &lt;your-jwt-token&gt;"</code></pre>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 1 — REPORT LANDING PAGE            -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s1"><span class="section-num">01</span> Report Landing Page &amp; Navigation</h2>
+
+<p>The <strong>Reports</strong> page is the central hub for all analytical reports. It displays a card grid of 16 report types grouped by category, with a global date range picker for filtering.</p>
+
+<!-- TC-R01 -->
+<div class="test-case open" id="tc-r01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R01</span>
+    <span class="tc-title">Navigate to Reports Page</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Reports page is accessible from sidebar navigation and displays all report type cards.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Log in to the AgentShield dashboard.</li>
+      <li>In the sidebar, locate the <strong>Monitoring</strong> section.</li>
+      <li>Click on <strong>Reports</strong> (📊 icon).</li>
+      <li>Verify the page loads with the title "Reports" in the top bar.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Page title</td><td>"Reports" displayed in the top bar</td></tr>
+        <tr><td>Date range picker</td><td>Visible at top with "Report Period" label, defaulting to last 30 days</td></tr>
+        <tr><td>Report categories</td><td>6 category groups displayed: Security & Access, Compliance & Audit, Cost & Usage, Agent Performance, Guardrails, Executive</td></tr>
+        <tr><td>Report cards</td><td>16 clickable cards, each with icon, title, and description</td></tr>
+        <tr><td>Category indicators</td><td>Each category has a colored left-bar indicator</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R02 -->
+<div class="test-case" id="tc-r02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R02</span>
+    <span class="tc-title">List Available Report Types via API</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the API returns all 16 report types with metadata.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/reports/types | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>200 OK</td></tr>
+        <tr><td>Response shape</td><td><span class="inline-code">{ success: true, data: [...] }</span></td></tr>
+        <tr><td>Array length</td><td>16 items</td></tr>
+        <tr><td>Each item has</td><td><span class="inline-code">type</span>, <span class="inline-code">label</span>, <span class="inline-code">category</span>, <span class="inline-code">icon</span></td></tr>
+        <tr><td>Categories present</td><td>Security & Access, Compliance & Audit, Cost & Usage, Agent Performance, Guardrails, Executive</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R03 -->
+<div class="test-case" id="tc-r03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R03</span>
+    <span class="tc-title">Date Range Filter Changes Report Period</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify date range filter on the landing page carries through to report generation.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Reports landing page, change the <strong>From</strong> date to 7 days ago.</li>
+      <li>Change the <strong>To</strong> date to today.</li>
+      <li>Click any report card (e.g., "Access Decision Summary").</li>
+      <li>Check that the generated report data reflects the narrower date range (fewer data points in the daily trend chart).</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Date inputs accept values</td><td>Both date pickers update without errors</td></tr>
+        <tr><td>Report reflects date range</td><td>Daily trend chart shows only ~7 data points</td></tr>
+        <tr><td>Summary stats match</td><td>Numbers are smaller than the default 30-day range</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R04 -->
+<div class="test-case" id="tc-r04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R04</span>
+    <span class="tc-title">Report Card Hover Effects</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify report type cards have interactive hover styling.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Reports landing page, hover over any report card.</li>
+      <li>Observe the border color change and subtle glow effect.</li>
+      <li>Move cursor away and verify the card returns to its default state.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Hover border</td><td>Border changes to category accent color</td></tr>
+        <tr><td>Hover glow</td><td>Subtle colored box-shadow appears</td></tr>
+        <tr><td>Cursor</td><td>Changes to pointer</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 2 — SECURITY & ACCESS REPORTS      -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s2"><span class="section-num">02</span> Security &amp; Access Reports</h2>
+
+<p>These reports analyze policy enforcement decisions, denied actors, and policy utilization patterns from the <span class="inline-code">audit_log</span> and <span class="inline-code">policies</span> tables.</p>
+
+<!-- TC-R05 -->
+<div class="test-case" id="tc-r05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R05</span>
+    <span class="tc-title">Generate Access Decision Summary Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Generate the P0 Access Decision report and verify all data sections render.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong>.</li>
+      <li>Click the <strong>"Access Decision Summary"</strong> card under Security &amp; Access.</li>
+      <li>Wait for loading overlay to appear and then dismiss.</li>
+      <li>Verify all report sections render correctly.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/access_decisions?from=2026-06-01&to=2026-07-06" \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Stat cards</td><td>4 cards: Total Requests, Allowed, Denied, Errors — each with numeric value</td></tr>
+        <tr><td>Allow/Deny rates</td><td>Percentage shown in stat card subtitles (e.g., "98.9%")</td></tr>
+        <tr><td>Daily Trend chart</td><td>Stacked area chart with Allowed (green), Denied (red), Errors (amber) series</td></tr>
+        <tr><td>By Event Type chart</td><td>Pie chart showing api_request, policy_enforcement, etc.</td></tr>
+        <tr><td>Top Denied Actors</td><td>Table with Actor ID, Type, Deny Count (or "No data" if no denials)</td></tr>
+        <tr><td>API response</td><td><span class="inline-code">summary</span>, <span class="inline-code">daily_trend</span>, <span class="inline-code">top_denied_actors</span>, <span class="inline-code">by_event_type</span> arrays</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R06 -->
+<div class="test-case" id="tc-r06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R06</span>
+    <span class="tc-title">Generate Policy Effectiveness Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify policy hit counts and dormant policy detection.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong>.</li>
+      <li>Click <strong>"Policy Effectiveness"</strong> card.</li>
+      <li>Verify stat cards and policy charts render.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/policy_effectiveness" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Stat cards</td><td>Active Policies count, Policies with Hits count, Dormant Policies count</td></tr>
+        <tr><td>Policy hits chart</td><td>Horizontal bar chart with Allowed/Denied stacked bars per policy</td></tr>
+        <tr><td>Dormant policies table</td><td>List of active policies with zero matches (Name, Type, Priority, Created date)</td></tr>
+        <tr><td>API field: <span class="inline-code">policy_hits</span></td><td>Array of objects with policy_name, hit_count, allowed, denied</td></tr>
+        <tr><td>API field: <span class="inline-code">dormant_policies</span></td><td>Array of active but unmatched policies</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R07 -->
+<div class="test-case" id="tc-r07">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R07</span>
+    <span class="tc-title">Back Button Returns to Report Selector</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the back navigation from a rendered report to the landing page.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Generate any report (e.g., Access Decision Summary).</li>
+      <li>Click the <strong>"← Back"</strong> button in the top-left toolbar.</li>
+      <li>Verify you return to the report type card grid.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Navigation</td><td>Returns to the report type card grid</td></tr>
+        <tr><td>Date range preserved</td><td>Previously selected date range still populated</td></tr>
+        <tr><td>No errors</td><td>No console errors during navigation</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R08 -->
+<div class="test-case" id="tc-r08">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R08</span>
+    <span class="tc-title">Refresh Button Re-generates Report</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Refresh button on a rendered report re-fetches data.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Generate the Access Decision Summary report.</li>
+      <li>Click the <strong>🔄 Refresh</strong> button in the toolbar.</li>
+      <li>Observe the loading overlay briefly appears, then report re-renders with fresh data.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Loading state</td><td>Loading overlay appears with "Generating report..." text</td></tr>
+        <tr><td>Data refreshed</td><td>Report re-renders (generatedAt timestamp updates)</td></tr>
+        <tr><td>Refresh icon</td><td>Spins during loading (CSS .spin class applied)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 3 — COMPLIANCE & AUDIT REPORTS     -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s3"><span class="section-num">03</span> Compliance &amp; Audit Reports</h2>
+
+<p>Reports covering compliance framework posture, PII exposure, and the immutable audit trail.</p>
+
+<!-- TC-R09 -->
+<div class="test-case" id="tc-r09">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R09</span>
+    <span class="tc-title">Generate Compliance Posture Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify per-framework pass rates and PII summary render correctly.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/compliance_posture" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Framework stat cards</td><td>One stat card per active framework (SOX, HIPAA, GDPR, PCI-DSS) with pass rate %</td></tr>
+        <tr><td>PII stat card</td><td>Shows PII detected count, flagged count, and total sampled</td></tr>
+        <tr><td>Color coding</td><td>≥80% = green, 50-79% = amber, &lt;50% = red</td></tr>
+        <tr><td>Compliance trend</td><td>Bar chart with Passed (green) vs Failed (red) by date</td></tr>
+        <tr><td>API: <span class="inline-code">by_framework</span></td><td>Array with framework, total_checks, passed, failed, pass_rate</td></tr>
+        <tr><td>API: <span class="inline-code">pii_summary</span></td><td>Object with total_samples, pii_found, flagged</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R10 -->
+<div class="test-case" id="tc-r10">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R10</span>
+    <span class="tc-title">Generate Compliance Check History Report</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify chronological check results and persistent failure detection.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/compliance_history?framework=sox" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Checks table</td><td>Table with Config Name, Framework, Status badge (passed/failed/partial), Passed/Failed rule counts, Date</td></tr>
+        <tr><td>Status badges</td><td>Color-coded: <span class="badge green">passed</span> <span class="badge red">failed</span> <span class="badge orange">partial</span></td></tr>
+        <tr><td>Persistent failures</td><td>Table of rules that repeatedly fail, sorted by failure_count DESC</td></tr>
+        <tr><td>Framework filter</td><td>When <span class="inline-code">?framework=sox</span> is passed, only SOX checks appear</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R11 -->
+<div class="test-case" id="tc-r11">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R11</span>
+    <span class="tc-title">Generate PII Exposure Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify PII breakdown by type and agent with trend visualization.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong>.</li>
+      <li>Click <strong>"PII Exposure Report"</strong> card under Compliance &amp; Audit.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>PII by Type</td><td>Pie chart showing email, ssn, phone, etc. breakdown</td></tr>
+        <tr><td>PII by Agent</td><td>Horizontal bar chart with agent names and PII counts</td></tr>
+        <tr><td>PII trend</td><td>Area chart with "PII Detected" (red) and "Total Sampled" (indigo) over time</td></tr>
+        <tr><td>Empty state</td><td>If no PII data, charts show "No data for this period"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R12 -->
+<div class="test-case" id="tc-r12">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R12</span>
+    <span class="tc-title">Generate Audit Trail Export Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify audit trail data export with preview table.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/audit_export?limit=100" | python3 -m json.tool | head -50</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Records count stat card</td><td>Shows total records exported (e.g., 10000)</td></tr>
+        <tr><td>Preview table</td><td>First 50 records shown with Trace ID, Event, Action, Outcome, Actor, Latency, Time</td></tr>
+        <tr><td>Outcome badges</td><td>Color-coded status: <span class="badge green">allowed</span> <span class="badge red">denied</span> <span class="badge red">error</span></td></tr>
+        <tr><td>Max limit</td><td>API caps at 50,000 records max (even if higher limit requested)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 4 — COST & USAGE REPORTS           -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s4"><span class="section-num">04</span> Cost &amp; Usage Reports</h2>
+
+<p>Reports analyzing token consumption, monetary spend, budget utilization, and cost outliers from the <span class="inline-code">cost_records</span> and <span class="inline-code">budgets</span> tables.</p>
+
+<!-- TC-R13 -->
+<div class="test-case" id="tc-r13">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R13</span>
+    <span class="tc-title">Generate Cost Overview Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify cost summary, daily trend, and per-agent/model breakdowns.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong> → click <strong>"Cost Overview"</strong>.</li>
+      <li>Verify all report sections render.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/cost_overview" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Summary stat cards</td><td>Total Spend ($X.XX), Total Tokens (formatted with commas), Requests count</td></tr>
+        <tr><td>Token breakdown</td><td>Sub-label shows "In: X / Out: Y" input/output split</td></tr>
+        <tr><td>Daily cost chart</td><td>Area chart with cost_cents, Y-axis formatted as $</td></tr>
+        <tr><td>Cost by Agent</td><td>Horizontal bar chart, Y-axis = agent names, X-axis = $ formatted</td></tr>
+        <tr><td>Cost by Model</td><td>Pie chart with model names and $ values in legend</td></tr>
+        <tr><td>API: <span class="inline-code">summary.total_cost_dollars</span></td><td>String like "12.34"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R14 -->
+<div class="test-case" id="tc-r14">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R14</span>
+    <span class="tc-title">Generate Budget Utilization Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify budget consumption vs allocation with progress bars and alerts.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/budget_utilization" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Stat cards</td><td>Total Budgets count, Over Threshold count (red if > 0)</td></tr>
+        <tr><td>Budget table</td><td>Name, Scope, Period, Token Usage (progress bar), Cost Usage (progress bar), Status badge</td></tr>
+        <tr><td>Progress bar colors</td><td>Green (&lt;70%), Amber (70-89%), Red (≥90%)</td></tr>
+        <tr><td>Status badge</td><td><span class="badge red">Hard Limit</span> or <span class="badge blue">Soft</span></td></tr>
+        <tr><td>API: <span class="inline-code">alerts</span></td><td>Array of budgets over their warn_threshold</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R15 -->
+<div class="test-case" id="tc-r15">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R15</span>
+    <span class="tc-title">Generate Token Usage Analytics Report</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify input/output token ratios, model utilization, and cost outlier detection.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong> → click <strong>"Token Usage Analytics"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Token trend chart</td><td>Stacked area: Input (indigo) + Output (green) over time</td></tr>
+        <tr><td>I/O ratio table</td><td>Agent name, Input Tokens, Output Tokens, Ratio (e.g., 0.85)</td></tr>
+        <tr><td>Model utilization</td><td>Bar chart with model names and total token counts</td></tr>
+        <tr><td>Top outliers table</td><td>"🔥 Top 10 Most Token-Expensive Requests" with Agent, Model, Tokens, Cost, Time</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 5 — AGENT PERFORMANCE REPORTS      -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s5"><span class="section-num">05</span> Agent Performance Reports</h2>
+
+<p>Reports covering agent fleet health, evaluation scores, and invocation patterns from the <span class="inline-code">agents</span>, <span class="inline-code">eval_runs</span>, and <span class="inline-code">audit_log</span> tables.</p>
+
+<!-- TC-R16 -->
+<div class="test-case" id="tc-r16">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R16</span>
+    <span class="tc-title">Generate Agent Health &amp; Availability Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify agent fleet health summary and individual agent status listing.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/agent_health" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Stat cards</td><td>Total Agents, Healthy (green), Unhealthy (red), Unknown (gray)</td></tr>
+        <tr><td>Agent table</td><td>Sorted unhealthy-first: Name, Slug, Protocol, Health badge (dot + text), Failures, Last Check time</td></tr>
+        <tr><td>Health badge</td><td>Green dot = healthy, Red dot = unhealthy, Amber dot = degraded, Gray dot = unknown</td></tr>
+        <tr><td>API: <span class="inline-code">summary</span></td><td>total, healthy, unhealthy, degraded, unknown, inactive counts</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R17 -->
+<div class="test-case" id="tc-r17">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R17</span>
+    <span class="tc-title">Generate Agent Evaluation Scorecard Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify three-layer evaluation score trends and HITL review summary.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong> → click <strong>"Agent Evaluation Scorecard"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Score trend chart</td><td>Line chart with avg_score over time (Y-axis 0-100)</td></tr>
+        <tr><td>Eval runs table</td><td>Agent, Suite, Mode, Score %, Pass/Fail ratio, Review count, Status badge, Date</td></tr>
+        <tr><td>HITL review summary</td><td>Table showing review_action → count mapping</td></tr>
+        <tr><td>Empty state</td><td>If no eval runs exist, tables show "No data" gracefully</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R18 -->
+<div class="test-case" id="tc-r18">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R18</span>
+    <span class="tc-title">Generate Agent Invocation Report</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify invocation volume, latency metrics, and per-agent breakdown.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/agent_invocations" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Volume chart</td><td>Area chart showing daily invocation count</td></tr>
+        <tr><td>By Agent table</td><td>Agent ID, Invocations, Avg/Min/Max Latency (ms), Success, Errors</td></tr>
+        <tr><td>API: <span class="inline-code">hourly_heatmap</span></td><td>Array with day_of_week, hour, count for usage patterns</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 6 — GUARDRAILS & EXECUTIVE         -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s6"><span class="section-num">06</span> Guardrails &amp; Executive Reports</h2>
+
+<p>Reports on guardrail violations, coverage gaps, and the executive governance posture summary.</p>
+
+<!-- TC-R19 -->
+<div class="test-case" id="tc-r19">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R19</span>
+    <span class="tc-title">Generate Guardrail Violations Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify violation breakdown by rule type and test run history.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/guardrail_violations" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Violations chart</td><td>Bar chart with rule_type on X-axis and total_failures on Y-axis (red bars)</td></tr>
+        <tr><td>Test runs table</td><td>Profile, Mode, Agent, Status badge, Pass/Fail ratio, Date</td></tr>
+        <tr><td>API: <span class="inline-code">by_rule_type</span></td><td>Array with rule_type, severity, test_runs_involved, total_failures</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R20 -->
+<div class="test-case" id="tc-r20">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R20</span>
+    <span class="tc-title">Generate Guardrail Coverage Report</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify coverage analysis showing protected vs unprotected agents.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong> → click <strong>"Guardrail Coverage"</strong>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Stat cards</td><td>Total Agents, Protected count (green), Unprotected count (red), Coverage % (color-coded)</td></tr>
+        <tr><td>Unprotected agents</td><td>⚠️ Table showing agents with zero guardrail profiles assigned</td></tr>
+        <tr><td>Protected agents</td><td>Table with Name, Slug, and comma-separated list of assigned profile names</td></tr>
+        <tr><td>API: <span class="inline-code">summary.coverage_pct</span></td><td>Percentage as string (e.g., "66.7")</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R21 -->
+<div class="test-case" id="tc-r21">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R21</span>
+    <span class="tc-title">Generate Governance Posture (Executive Summary)</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the executive summary aggregates data from all 5 domains into a single-page view.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to <strong>Reports</strong> → click <strong>"Governance Posture"</strong> under Executive.</li>
+      <li>Verify all 5 posture cards render.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/governance_posture" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>5 posture cards</td><td>Security (🛡️), Compliance (📋), Cost (💰), Agents (🤖), Guardrails (🚧)</td></tr>
+        <tr><td>Security card</td><td>Deny rate % and total request count</td></tr>
+        <tr><td>Compliance card</td><td>Framework count and PII count</td></tr>
+        <tr><td>Cost card</td><td>Total spend in $ and agent billed count</td></tr>
+        <tr><td>Agents card</td><td>Healthy/Total ratio and unhealthy count</td></tr>
+        <tr><td>Guardrails card</td><td>Violation count and threat type count</td></tr>
+        <tr><td>Compliance table</td><td>Per-framework table with checks, pass rate, and RAG badge (GREEN/AMBER/RED)</td></tr>
+        <tr><td>API sub-objects</td><td><span class="inline-code">security</span>, <span class="inline-code">compliance</span>, <span class="inline-code">cost</span>, <span class="inline-code">agents</span>, <span class="inline-code">guardrails</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R22 -->
+<div class="test-case" id="tc-r22">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R22</span>
+    <span class="tc-title">Generate Workflow Execution Report</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify workflow execution trends and per-workflow error rates.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/workflow_execution" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Execution trend</td><td>Area chart with Executions (purple) and Errors (red) over time</td></tr>
+        <tr><td>By Workflow table</td><td>Workflow ID, Executions, Success, Errors, Avg Latency, Max Latency</td></tr>
+        <tr><td>Empty state</td><td>If no workflow_execution events in audit_log, shows empty charts</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 7 — EXPORT & SNAPSHOT              -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s7"><span class="section-num">07</span> Export &amp; Snapshot Functionality</h2>
+
+<p>Tests for CSV/XLSX export, report snapshots, and saved report configuration CRUD.</p>
+
+<!-- TC-R23 -->
+<div class="test-case" id="tc-r23">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R23</span>
+    <span class="tc-title">Export Report as CSV</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify CSV export downloads a properly formatted file.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Generate any report (e.g., Access Decision Summary).</li>
+      <li>Click the <strong>"CSV"</strong> button in the toolbar.</li>
+      <li>Verify a file downloads with a <span class="inline-code">.csv</span> extension.</li>
+      <li>Open the file and verify it contains tabular data with proper headers.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/access_decisions/export?format=csv" -o report.csv
+head -5 report.csv</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>File downloaded</td><td>File named <span class="inline-code">agentshield_access_decisions_YYYY-MM-DD.csv</span></td></tr>
+        <tr><td>Content-Type</td><td><span class="inline-code">text/csv</span></td></tr>
+        <tr><td>Content-Disposition</td><td><span class="inline-code">attachment; filename="..."</span></td></tr>
+        <tr><td>Headers row</td><td>First row contains column names in quotes</td></tr>
+        <tr><td>Data rows</td><td>Subsequent rows contain properly escaped CSV values</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R24 -->
+<div class="test-case" id="tc-r24">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R24</span>
+    <span class="tc-title">Export Report as XLSX</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify XLSX export downloads a multi-sheet Excel workbook.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Generate any report (e.g., Cost Overview).</li>
+      <li>Click the <strong>"XLSX"</strong> button in the toolbar.</li>
+      <li>Open the file in Excel or Google Sheets.</li>
+      <li>Verify multiple sheets exist (Summary, Daily Trend, By Agent, By Model, etc.).</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/cost_overview/export?format=xlsx" -o report.xlsx
+file report.xlsx</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>File downloaded</td><td>File named <span class="inline-code">agentshield_cost_overview_YYYY-MM-DD.xlsx</span></td></tr>
+        <tr><td>Content-Type</td><td><span class="inline-code">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</span></td></tr>
+        <tr><td>Multiple sheets</td><td>Summary sheet + one sheet per data array (Daily Trend, By Agent, By Model)</td></tr>
+        <tr><td>Summary sheet</td><td>Two columns: Metric | Value — containing totals</td></tr>
+        <tr><td>Data sheets</td><td>Headers in first row, data in subsequent rows, complex objects JSON-stringified</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R25 -->
+<div class="test-case" id="tc-r25">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R25</span>
+    <span class="tc-title">Export with Date Range Filter</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify that export respects the date range filter.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Export only last 7 days
+FROM=$(date -v-7d +%Y-%m-%d)
+TO=$(date +%Y-%m-%d)
+curl -s -H "$AUTH" "$BASE_URL/reports/audit_export/export?format=csv&from=${FROM}&to=${TO}" -o filtered.csv
+wc -l filtered.csv</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Record count</td><td>Significantly fewer records than a 30-day export</td></tr>
+        <tr><td>Date range</td><td>All <span class="inline-code">recorded_at</span> values within specified FROM/TO</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R26 -->
+<div class="test-case" id="tc-r26">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R26</span>
+    <span class="tc-title">Save a Report Snapshot</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Save a generated report as an immutable snapshot for historical reference.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X POST -H "$AUTH" -H "Content-Type: application/json" \
+  "$BASE_URL/reports/governance_posture/snapshot" \
+  -d '{"name": "Q3 2026 Executive Summary", "filters": {"from":"2026-07-01","to":"2026-07-06"}}'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>200 OK</td></tr>
+        <tr><td>Response</td><td><span class="inline-code">{ success: true, data: { id, report_type, generated_at, name } }</span></td></tr>
+        <tr><td>Snapshot name</td><td>"Q3 2026 Executive Summary"</td></tr>
+        <tr><td>Generated at</td><td>Current timestamp</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R27 -->
+<div class="test-case" id="tc-r27">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R27</span>
+    <span class="tc-title">List Report Snapshots</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> List previously saved snapshots, optionally filtered by report type.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># List all snapshots
+curl -s -H "$AUTH" "$BASE_URL/reports/snapshots/list" | python3 -m json.tool
+
+# Filter by type
+curl -s -H "$AUTH" "$BASE_URL/reports/snapshots/list?type=governance_posture" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Response</td><td>Array of snapshots sorted by generated_at DESC</td></tr>
+        <tr><td>Each snapshot</td><td>id, report_type, name, filters, generated_by, generated_at</td></tr>
+        <tr><td>Type filter</td><td>When <span class="inline-code">?type=governance_posture</span> is set, only matching snapshots appear</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R28 -->
+<div class="test-case" id="tc-r28">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R28</span>
+    <span class="tc-title">Retrieve a Snapshot by ID</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Retrieve a specific snapshot's full data by its UUID.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Replace with actual snapshot ID from TC-R26
+curl -s -H "$AUTH" "$BASE_URL/reports/snapshots/&lt;snapshot-id&gt;" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Full data</td><td>Complete report data stored in <span class="inline-code">data</span> JSONB field</td></tr>
+        <tr><td>Immutability</td><td>Data matches the original report at the time of snapshot (not re-queried)</td></tr>
+        <tr><td>Invalid ID</td><td>Returns error "Snapshot not found" for non-existent UUID</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R29 -->
+<div class="test-case" id="tc-r29">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R29</span>
+    <span class="tc-title">Save a Report Configuration</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Create a saved report configuration for reuse or scheduling.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X POST -H "$AUTH" -H "Content-Type: application/json" \
+  "$BASE_URL/reports/configs" \
+  -d '{
+    "name": "Weekly Security Summary",
+    "report_type": "access_decisions",
+    "filters": {"from":"2026-07-01"},
+    "schedule": "weekly",
+    "recipients": ["security@example.com"]
+  }'</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>200 OK</td></tr>
+        <tr><td>Response</td><td>Config object with UUID id, name, report_type, schedule, recipients</td></tr>
+        <tr><td>Validation</td><td>report_type must be one of the 16 valid types</td></tr>
+        <tr><td>Schedule</td><td>Must be daily, weekly, monthly, or null</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R30 -->
+<div class="test-case" id="tc-r30">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R30</span>
+    <span class="tc-title">List Saved Report Configurations</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Retrieve all saved report configs for the current user.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/configs/list" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Response</td><td>Array of configs sorted by created_at DESC</td></tr>
+        <tr><td>User scoping</td><td>Shows configs created by the current user or shared (created_by IS NULL)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R31 -->
+<div class="test-case" id="tc-r31">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R31</span>
+    <span class="tc-title">Delete a Report Configuration</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Delete a saved report config by ID.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -X DELETE -H "$AUTH" "$BASE_URL/reports/configs/&lt;config-id&gt;"</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>200 OK</td></tr>
+        <tr><td>Response</td><td><span class="inline-code">{ success: true, message: "Report config deleted" }</span></td></tr>
+        <tr><td>Verification</td><td>Config no longer appears in <span class="inline-code">/configs/list</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R32 -->
+<div class="test-case" id="tc-r32">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R32</span>
+    <span class="tc-title">Invalid Report Type Returns 400</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the API returns a meaningful error for an invalid report type.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/reports/nonexistent_report" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>400 Bad Request</td></tr>
+        <tr><td>Response</td><td><span class="inline-code">{ success: false, error: "Unknown report type: nonexistent_report" }</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R33 -->
+<div class="test-case" id="tc-r33">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R33</span>
+    <span class="tc-title">Unauthenticated Request Returns 401</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify all report endpoints require authentication.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># No Authorization header
+curl -s "$BASE_URL/reports/types" | python3 -m json.tool
+curl -s "$BASE_URL/reports/access_decisions" | python3 -m json.tool
+curl -s "$BASE_URL/reports/access_decisions/export?format=csv"</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>401 Unauthorized</td></tr>
+        <tr><td>Error code</td><td><span class="inline-code">AUTH_REQUIRED</span></td></tr>
+        <tr><td>All endpoints</td><td>/types, /:type, /:type/export, /snapshots/*, /configs/* all require auth</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R34 -->
+<div class="test-case" id="tc-r34">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R34</span>
+    <span class="tc-title">Report with No Data Renders Gracefully</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify reports handle empty datasets without errors.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Request data from a future date range (no data expected)
+curl -s -H "$AUTH" "$BASE_URL/reports/access_decisions?from=2030-01-01&to=2030-01-31" \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>200 OK (not 500)</td></tr>
+        <tr><td>Summary values</td><td>All counts are 0, rates are "0.0"</td></tr>
+        <tr><td>Arrays</td><td>Empty arrays <span class="inline-code">[]</span> for daily_trend, top_denied_actors, etc.</td></tr>
+        <tr><td>UI rendering</td><td>Charts show "No data for this period" or empty states, no React errors</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-R35 -->
+<div class="test-case" id="tc-r35">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-R35</span>
+    <span class="tc-title">Loading State &amp; UX Behavior</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify loading state, overlay, and disable behavior during report generation.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Click any report card on the landing page.</li>
+      <li>Observe the loading overlay with glassmorphism effect and spinning icon.</li>
+      <li>Verify all report type cards are disabled (unclickable) during loading.</li>
+      <li>Wait for report to load and verify overlay dismisses.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Overlay appearance</td><td>Full-screen overlay with blurred background</td></tr>
+        <tr><td>Loading text</td><td>"Generating report..." with spinning ⏳ icon</td></tr>
+        <tr><td>Cards disabled</td><td>Report cards have <span class="inline-code">disabled</span> attribute during loading</td></tr>
+        <tr><td>Overlay dismissal</td><td>Overlay disappears when data loads, report renders underneath</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- APPENDIX — REPORT TYPES QUICK REFERENCE    -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="appendix"><span class="section-num">A</span> Report Types Quick Reference</h2>
+
+<div class="card blue">
+  <div class="card-title">📊 All 16 Report Types</div>
+  <table class="io-table">
+    <tr><th>#</th><th>Type Key</th><th>Label</th><th>Category</th><th>Priority</th></tr>
+    <tr><td>1</td><td><span class="inline-code">access_decisions</span></td><td>Access Decision Summary</td><td>Security & Access</td><td><span class="tc-priority high">P0</span></td></tr>
+    <tr><td>2</td><td><span class="inline-code">policy_effectiveness</span></td><td>Policy Effectiveness</td><td>Security & Access</td><td><span class="tc-priority medium">P1</span></td></tr>
+    <tr><td>3</td><td><span class="inline-code">compliance_posture</span></td><td>Compliance Posture</td><td>Compliance & Audit</td><td><span class="tc-priority high">P0</span></td></tr>
+    <tr><td>4</td><td><span class="inline-code">compliance_history</span></td><td>Compliance Check History</td><td>Compliance & Audit</td><td><span class="tc-priority medium">P1</span></td></tr>
+    <tr><td>5</td><td><span class="inline-code">pii_exposure</span></td><td>PII Exposure Report</td><td>Compliance & Audit</td><td><span class="tc-priority medium">P1</span></td></tr>
+    <tr><td>6</td><td><span class="inline-code">audit_export</span></td><td>Audit Trail Export</td><td>Compliance & Audit</td><td><span class="tc-priority high">P0</span></td></tr>
+    <tr><td>7</td><td><span class="inline-code">cost_overview</span></td><td>Cost Overview</td><td>Cost & Usage</td><td><span class="tc-priority high">P0</span></td></tr>
+    <tr><td>8</td><td><span class="inline-code">budget_utilization</span></td><td>Budget Utilization</td><td>Cost & Usage</td><td><span class="tc-priority medium">P1</span></td></tr>
+    <tr><td>9</td><td><span class="inline-code">token_usage</span></td><td>Token Usage Analytics</td><td>Cost & Usage</td><td><span class="tc-priority medium">P2</span></td></tr>
+    <tr><td>10</td><td><span class="inline-code">agent_health</span></td><td>Agent Health & Availability</td><td>Agent Performance</td><td><span class="tc-priority medium">P1</span></td></tr>
+    <tr><td>11</td><td><span class="inline-code">agent_scorecard</span></td><td>Agent Evaluation Scorecard</td><td>Agent Performance</td><td><span class="tc-priority medium">P2</span></td></tr>
+    <tr><td>12</td><td><span class="inline-code">agent_invocations</span></td><td>Agent Invocation Report</td><td>Agent Performance</td><td><span class="tc-priority medium">P2</span></td></tr>
+    <tr><td>13</td><td><span class="inline-code">guardrail_violations</span></td><td>Guardrail Violations</td><td>Guardrails</td><td><span class="tc-priority medium">P1</span></td></tr>
+    <tr><td>14</td><td><span class="inline-code">guardrail_coverage</span></td><td>Guardrail Coverage</td><td>Guardrails</td><td><span class="tc-priority medium">P2</span></td></tr>
+    <tr><td>15</td><td><span class="inline-code">governance_posture</span></td><td>Governance Posture</td><td>Executive</td><td><span class="tc-priority high">P0</span></td></tr>
+    <tr><td>16</td><td><span class="inline-code">workflow_execution</span></td><td>Workflow Execution</td><td>Executive</td><td><span class="tc-priority medium">P2</span></td></tr>
+  </table>
+</div>
+
+<div class="card purple">
+  <div class="card-title">🔗 API Endpoint Summary</div>
+  <table class="io-table">
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/reports/types</span></td><td>List all 16 report types with metadata</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/reports/:type</span></td><td>Generate report (JSON response)</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/reports/:type/export?format=csv|xlsx</span></td><td>Export report as file download</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/reports/:type/snapshot</span></td><td>Save report snapshot</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/reports/snapshots/list</span></td><td>List saved snapshots</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/reports/snapshots/:id</span></td><td>Retrieve snapshot by ID</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/reports/configs</span></td><td>Create saved report config</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/reports/configs/list</span></td><td>List saved configs</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/reports/configs/:id</span></td><td>Delete saved config</td></tr>
+  </table>
+</div>
+
+<div class="alert success">
+  <strong>✅ Test Suite Complete</strong>
+  All 35 test cases cover the full Reports module: landing page navigation (4), security reports (4),
+  compliance reports (4), cost reports (3), agent performance reports (3), guardrails & executive reports (4),
+  export & snapshot functionality (9), and edge cases/error handling (4).
+</div>
+
+</div><!-- /container -->
+
+<script>
+function toggleTC(header) {
+  const tc = header.closest('.test-case');
+  tc.classList.toggle('open');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// Auto-open first test case in each section
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.test-case').forEach(tc => {
+    // Only keep explicitly marked ones open
+  });
+});
+</script>
+
+</body>
+</html>

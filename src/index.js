@@ -16,6 +16,7 @@ const db = require('./db');
 const agentRoutes = require('./registry/routes');
 const adminRoutes = require('./admin/routes');
 const gatewayRoutes = require('./gateway/proxy');
+const reportRoutes = require('./reports/routes');
 
 // Middleware imports
 const {
@@ -81,6 +82,7 @@ app.get('/ready', (req, res) => {
 app.use('/api/v1/agents', agentRoutes);          // Agent Registry
 app.use('/api/v1', adminRoutes);                  // Admin API (policies, workflows, budgets, etc.)
 app.use('/api/v1/gateway', gatewayRoutes);       // Gateway Proxy (agent invocation, workflows)
+app.use('/api/v1/reports', reportRoutes);         // Reports Engine
 
 // ============================================
 // 404 Handler

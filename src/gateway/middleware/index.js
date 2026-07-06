@@ -68,7 +68,7 @@ function traceId(req, res, next) {
 // ============================================
 function authenticate(req, res, next) {
     // Skip auth for admin login and health endpoints
-    const publicPaths = ['/api/v1/auth/login', '/api/v1/auth/refresh', '/health', '/ready'];
+    const publicPaths = ['/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/admin/invitations/accept', '/health', '/ready'];
     if (publicPaths.some(p => req.path.startsWith(p))) {
         return next();
     }

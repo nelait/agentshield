@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentShield — Admin Module Test Cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --card: #111827;
+  --card-hover: #1a2332;
+  --border: #1e293b;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --green: #10b981;
+  --green-bg: #064e3b;
+  --red: #ef4444;
+  --red-bg: #450a0a;
+  --orange: #f59e0b;
+  --orange-bg: #451a03;
+  --blue: #3b82f6;
+  --blue-bg: #1e3a5f;
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.15);
+  --cyan: #06b6d4;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-bright: #f8fafc;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.7;
+}
+.container { max-width:1100px; margin:0 auto; padding:2rem; }
+
+/* ── Hero ────────────────────────── */
+.hero {
+  text-align:center;
+  padding:3rem 2rem;
+  background:linear-gradient(135deg, #1b1a4b 0%, #0f172a 50%, #0a2f2e 100%);
+  border-bottom:1px solid var(--border);
+  margin-bottom:2rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before {
+  content:'';
+  position:absolute;
+  top:-50%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:radial-gradient(circle at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(168,85,247,0.06) 0%, transparent 50%);
+  animation:pulseGlow 8s ease-in-out infinite alternate;
+}
+@keyframes pulseGlow {
+  0% { opacity:0.5; }
+  100% { opacity:1; }
+}
+.hero h1 {
+  font-size:2.5rem;
+  font-weight:800;
+  background:linear-gradient(135deg, var(--accent-light), var(--purple));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:0.5rem;
+  position:relative;
+}
+.hero .subtitle { color:var(--text-dim); font-size:1.1rem; position:relative; }
+.hero .meta {
+  margin-top:1rem;
+  display:flex;
+  gap:1.5rem;
+  justify-content:center;
+  flex-wrap:wrap;
+  position:relative;
+}
+.hero .meta span { color:var(--text-dim); font-size:0.85rem; }
+.hero .meta span strong { color:var(--accent-light); }
+
+/* ── Table of Contents ───────────── */
+.toc {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem 2rem;
+  margin-bottom:2.5rem;
+}
+.toc h2 { font-size:1.2rem; color:var(--accent-light); margin-bottom:1rem; border:none; padding:0; }
+.toc-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:0.4rem; }
+.toc a {
+  color:var(--text);
+  text-decoration:none;
+  font-size:0.9rem;
+  padding:0.4rem 0.6rem;
+  border-radius:6px;
+  display:block;
+  transition:all 0.2s;
+}
+.toc a:hover { background:var(--card-hover); color:var(--accent-light); transform:translateX(4px); }
+.toc a .num { color:var(--accent); font-weight:700; margin-right:0.4rem; }
+
+/* ── Headings ────────────────────── */
+h2 {
+  font-size:1.6rem;
+  color:var(--text-bright);
+  margin:2.5rem 0 1rem;
+  padding-bottom:0.5rem;
+  border-bottom:2px solid var(--accent);
+}
+h3 { font-size:1.25rem; color:var(--accent-light); margin:1.8rem 0 0.8rem; }
+h4 { font-size:1.05rem; color:var(--cyan); margin:1.2rem 0 0.6rem; }
+p { margin-bottom:1rem; }
+ul, ol { margin:0.5rem 0 1rem 1.5rem; }
+li { margin-bottom:0.3rem; }
+
+/* ── Cards ───────────────────────── */
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.5rem;
+  margin-bottom:1.5rem;
+  transition:border-color 0.3s;
+}
+.card:hover { border-color:var(--accent); }
+.card.green { border-left:4px solid var(--green); }
+.card.red { border-left:4px solid var(--red); }
+.card.orange { border-left:4px solid var(--orange); }
+.card.blue { border-left:4px solid var(--blue); }
+.card.purple { border-left:4px solid var(--purple); }
+.card-title { font-weight:700; font-size:1.1rem; margin-bottom:0.5rem; }
+
+/* ── Test Case Card ──────────────── */
+.test-case {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:0;
+  margin-bottom:1.5rem;
+  overflow:hidden;
+  transition:all 0.3s;
+}
+.test-case:hover { border-color: rgba(99,102,241,0.5); box-shadow:0 0 20px rgba(99,102,241,0.08); }
+.test-case-header {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:1rem 1.5rem;
+  background:rgba(99,102,241,0.05);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.test-case-header:hover { background:rgba(99,102,241,0.1); }
+.tc-id {
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  font-size:0.75rem;
+  padding:0.25rem 0.6rem;
+  border-radius:6px;
+  white-space:nowrap;
+}
+.tc-title { font-weight:600; font-size:1rem; color:var(--text-bright); flex:1; }
+.tc-priority {
+  font-size:0.7rem;
+  font-weight:600;
+  padding:0.2rem 0.5rem;
+  border-radius:10px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.tc-priority.high { background:var(--red-bg); color:var(--red); }
+.tc-priority.medium { background:var(--orange-bg); color:var(--orange); }
+.tc-priority.low { background:var(--blue-bg); color:var(--blue); }
+.tc-chevron { color:var(--text-dim); font-size:1rem; transition:transform 0.3s; }
+.test-case.open .tc-chevron { transform:rotate(180deg); }
+.test-case-body { padding:1.5rem; display:none; }
+.test-case.open .test-case-body { display:block; }
+
+/* ── IO Tables ───────────────────── */
+.io-section { margin:1rem 0; }
+.io-label {
+  font-size:0.8rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--text-dim);
+  margin-bottom:0.5rem;
+}
+.io-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+.io-table th {
+  background:rgba(99,102,241,0.1);
+  color:var(--accent-light);
+  font-weight:600;
+  text-align:left;
+  padding:0.6rem 1rem;
+  border:1px solid var(--border);
+  font-size:0.8rem;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.io-table td { padding:0.55rem 1rem; border:1px solid var(--border); vertical-align:top; }
+.io-table tr:nth-child(even) { background:rgba(99,102,241,0.03); }
+
+/* ── Code Blocks ─────────────────── */
+pre {
+  background:#0d1117;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:1rem 1.2rem;
+  overflow-x:auto;
+  margin:0.8rem 0 1.2rem;
+  font-size:0.83rem;
+  line-height:1.6;
+  position:relative;
+}
+code {
+  font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+  color:#e6edf3;
+}
+.inline-code {
+  background:#1e293b;
+  padding:0.15rem 0.45rem;
+  border-radius:4px;
+  font-size:0.83rem;
+  color:var(--cyan);
+  font-family:'JetBrains Mono','Fira Code',monospace;
+}
+
+/* ── Badges ──────────────────────── */
+.badge {
+  display:inline-block;
+  padding:0.15rem 0.6rem;
+  border-radius:20px;
+  font-size:0.75rem;
+  font-weight:600;
+}
+.badge.green { background:var(--green-bg); color:var(--green); }
+.badge.red { background:var(--red-bg); color:var(--red); }
+.badge.orange { background:var(--orange-bg); color:var(--orange); }
+.badge.blue { background:var(--blue-bg); color:var(--blue); }
+.badge.purple { background:var(--purple-bg); color:var(--purple); }
+
+/* ── Alerts ──────────────────────── */
+.alert { border-radius:8px; padding:1rem 1.2rem; margin:1rem 0; font-size:0.9rem; }
+.alert.info { background:rgba(59,130,246,0.1); border-left:4px solid var(--blue); }
+.alert.warn { background:rgba(245,158,11,0.1); border-left:4px solid var(--orange); }
+.alert.success { background:rgba(16,185,129,0.1); border-left:4px solid var(--green); }
+.alert.danger { background:rgba(239,68,68,0.1); border-left:4px solid var(--red); }
+.alert strong { display:block; margin-bottom:0.3rem; }
+
+/* ── Step List ───────────────────── */
+.steps { counter-reset:step; list-style:none; margin:1rem 0; padding:0; }
+.steps li {
+  counter-increment:step;
+  padding:0.6rem 0 0.6rem 3rem;
+  position:relative;
+  border-left:2px solid var(--border);
+  margin-left:1rem;
+}
+.steps li:last-child { border-left-color:transparent; }
+.steps li::before {
+  content:counter(step);
+  position:absolute;
+  left:-14px;
+  top:0.5rem;
+  width:26px;
+  height:26px;
+  background:var(--accent);
+  color:white;
+  font-size:0.75rem;
+  font-weight:700;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ── Verdict Badges ──────────────── */
+.verdict {
+  display:inline-flex;
+  align-items:center;
+  gap:0.3rem;
+  padding:0.2rem 0.7rem;
+  border-radius:6px;
+  font-size:0.8rem;
+  font-weight:600;
+}
+.verdict.pass { background:var(--green-bg); color:var(--green); }
+.verdict.fail { background:var(--red-bg); color:var(--red); }
+.verdict.warn { background:var(--orange-bg); color:var(--orange); }
+
+/* ── Summary Stats ───────────────── */
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:1rem;
+  margin:1.5rem 0;
+}
+.stat-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1.2rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+.stat-card .stat-num { font-size:2rem; font-weight:800; color:var(--accent-light); }
+.stat-card .stat-label { font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Copy Button ─────────────────── */
+.code-block { position:relative; }
+.copy-btn {
+  position:absolute;
+  top:0.5rem;
+  right:0.5rem;
+  background:var(--card);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  padding:0.3rem 0.6rem;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:0.72rem;
+  font-family:'Inter',sans-serif;
+  transition:all 0.2s;
+  z-index:1;
+}
+.copy-btn:hover { color:var(--accent-light); border-color:var(--accent); }
+
+/* ── Section Number ──────────────── */
+.section-num { color:var(--accent); font-weight:700; margin-right:0.5rem; }
+
+/* ── Feature Area Grid ──────────── */
+.feat-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+  gap:1rem;
+  margin:1rem 0 1.5rem;
+}
+.feat-chip {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1rem;
+  text-align:center;
+  transition:all 0.3s;
+}
+.feat-chip:hover { border-color:var(--accent); transform:translateY(-2px); }
+.feat-chip .feat-icon { font-size:1.5rem; margin-bottom:0.4rem; }
+.feat-chip .feat-name { font-size:0.85rem; font-weight:600; color:var(--text-bright); }
+.feat-chip .feat-desc { font-size:0.75rem; color:var(--text-dim); margin-top:0.2rem; }
+
+/* ── Responsive ──────────────────── */
+@media(max-width:768px) {
+  .hero h1 { font-size:1.8rem; }
+  .toc-grid { grid-template-columns:1fr; }
+  .stats-grid { grid-template-columns:repeat(2, 1fr); }
+  .container { padding:1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ -->
+<!-- HERO                                    -->
+<!-- ════════════════════════════════════════ -->
+<div class="hero">
+  <h1>🔐 Admin Module — Test Cases</h1>
+  <p class="subtitle">Step-by-Step Testing Guide for User Management, Invitations, Roles, Login Activity &amp; System</p>
+  <div class="meta">
+    <span>📅 <strong>July 2026</strong></span>
+    <span>🔖 <strong>v1.0</strong></span>
+    <span>📋 <strong>42 Test Cases</strong></span>
+    <span>📦 <strong>agentshield-dashboard</strong></span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════ -->
+<!-- DOCUMENT OVERVIEW                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="alert info">
+  <strong>📘 About This Document</strong>
+  This document provides comprehensive, repeatable test cases for the AgentShield <strong>Admin</strong> module.
+  Each test case specifies exact inputs, step-by-step actions, and expected results.
+  Tests cover all 5 feature areas: <strong>User Management</strong>, <strong>Invitations</strong>,
+  <strong>Roles &amp; Permissions</strong>, <strong>Login Activity</strong>, and <strong>System Diagnostics</strong>.
+  Tests can be executed via the <strong>Admin Dashboard UI</strong> or the <strong>REST API</strong>.
+</div>
+
+<!-- Test Summary Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-num">42</div>
+    <div class="stat-label">Total Test Cases</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">9</div>
+    <div class="stat-label">Test Sections</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">5</div>
+    <div class="stat-label">Feature Areas</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">25+</div>
+    <div class="stat-label">API Endpoints</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">4</div>
+    <div class="stat-label">User Roles</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="toc">
+  <h2>📑 Table of Contents</h2>
+  <div class="toc-grid">
+    <a href="#s0"><span class="num">00</span> Prerequisites &amp; Setup</a>
+    <a href="#s1"><span class="num">01</span> Admin Page Navigation &amp; Layout</a>
+    <a href="#s2"><span class="num">02</span> User Management — CRUD Operations</a>
+    <a href="#s3"><span class="num">03</span> User Management — Status &amp; Password</a>
+    <a href="#s4"><span class="num">04</span> Invitations System</a>
+    <a href="#s5"><span class="num">05</span> Roles &amp; Permissions Matrix</a>
+    <a href="#s6"><span class="num">06</span> Login Activity &amp; Security</a>
+    <a href="#s7"><span class="num">07</span> System Diagnostics</a>
+    <a href="#s8"><span class="num">08</span> Self-Service Profile</a>
+    <a href="#appendix"><span class="num">A</span> API Endpoint Reference</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 0 — PREREQUISITES                  -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s0"><span class="section-num">00</span> Prerequisites &amp; Setup</h2>
+
+<div class="card blue">
+  <div class="card-title">🔧 Environment Requirements</div>
+  <ul>
+    <li>AgentShield backend running (local <span class="inline-code">npm run dev</span> or deployed at GCP)</li>
+    <li>PostgreSQL with all migrations applied through <span class="inline-code">013_admin_module.sql</span></li>
+    <li>Dashboard accessible at <span class="inline-code">http://localhost:5173</span> or production URL</li>
+    <li>Logged in as <span class="badge purple">super_admin</span> role (for full access)</li>
+    <li>Default admin credentials: <span class="inline-code">admin@agentshield.local</span> / <span class="inline-code">admin123</span></li>
+  </ul>
+</div>
+
+<div class="alert warn">
+  <strong>⚠️ Before You Begin</strong>
+  The Admin module requires <span class="inline-code">admin</span> or <span class="inline-code">super_admin</span> role for most operations.
+  Viewers and editors will NOT see the Admin nav item in the sidebar. Tests should be run with the default super_admin account.
+  Some tests create test users — clean up afterward or use the provided test data.
+</div>
+
+<h3>Feature Areas</h3>
+<div class="feat-grid">
+  <div class="feat-chip">
+    <div class="feat-icon">👥</div>
+    <div class="feat-name">User Management</div>
+    <div class="feat-desc">CRUD, search, filter, status</div>
+  </div>
+  <div class="feat-chip">
+    <div class="feat-icon">📨</div>
+    <div class="feat-name">Invitations</div>
+    <div class="feat-desc">Send, accept, revoke invites</div>
+  </div>
+  <div class="feat-chip">
+    <div class="feat-icon">🔐</div>
+    <div class="feat-name">Roles &amp; Permissions</div>
+    <div class="feat-desc">4-role hierarchy matrix</div>
+  </div>
+  <div class="feat-chip">
+    <div class="feat-icon">📜</div>
+    <div class="feat-name">Login Activity</div>
+    <div class="feat-desc">History, lockout, IP tracking</div>
+  </div>
+  <div class="feat-chip">
+    <div class="feat-icon">🖥️</div>
+    <div class="feat-name">System</div>
+    <div class="feat-desc">DB stats, migrations, health</div>
+  </div>
+</div>
+
+<h3>API Base URL</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Local development
+BASE_URL=http://localhost:3000/api/v1
+
+# Production (GCP)
+BASE_URL=https://&lt;your-cloud-run-url&gt;/api/v1</code></pre>
+</div>
+
+<h3>Authentication Header</h3>
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <pre><code># Get token via login
+TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"admin123"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])")
+
+# Use token in subsequent requests
+AUTH="Authorization: Bearer $TOKEN"</code></pre>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 1 — ADMIN PAGE NAVIGATION          -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s1"><span class="section-num">01</span> Admin Page Navigation &amp; Layout</h2>
+
+<p>The <strong>Admin</strong> page is accessible from the sidebar under the System section. It contains 5 tabs: Users, Invitations, Roles &amp; Permissions, Login Activity, and System.</p>
+
+<!-- TC-A01 -->
+<div class="test-case open" id="tc-a01">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A01</span>
+    <span class="tc-title">Navigate to Admin Page</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Admin page is accessible from sidebar navigation and displays the tab bar.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Log in to the AgentShield dashboard as <span class="badge purple">super_admin</span>.</li>
+      <li>In the sidebar, locate the <strong>System</strong> section.</li>
+      <li>Click on <strong>Admin</strong> (👥 icon).</li>
+      <li>Verify the page loads with the title "Admin" in the top bar.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Page title</td><td>"Admin" displayed in the top bar</td></tr>
+        <tr><td>Tab bar</td><td>5 tabs visible: Users, Invitations, Roles & Permissions, Login Activity, System</td></tr>
+        <tr><td>Default tab</td><td>"Users" tab is active by default</td></tr>
+        <tr><td>Users table</td><td>Table with columns: User, Role, Department, Status, Last Login, Actions</td></tr>
+        <tr><td>Stats cards</td><td>4 stat cards visible: Total Users, Active, Inactive, Locked</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A02 -->
+<div class="test-case" id="tc-a02">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A02</span>
+    <span class="tc-title">Role-Based Sidebar Visibility</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Admin nav item is only visible to <span class="badge blue">admin</span> and <span class="badge purple">super_admin</span> roles.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Log in as <span class="badge purple">super_admin</span> — verify "Admin" appears in sidebar under System.</li>
+      <li>Log out and log in as an <span class="badge blue">admin</span> user — verify "Admin" still visible.</li>
+      <li>Log out and log in as an <span class="badge green">editor</span> user — verify "Admin" is NOT visible in sidebar.</li>
+      <li>Log out and log in as a <span class="badge">viewer</span> user — verify "Admin" is NOT visible in sidebar.</li>
+    </ol>
+
+    <h4>📌 Via API (editor trying admin endpoint)</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Login as editor
+EDITOR_TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@agentshield.local","password":"Admin123!"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])")
+
+# Try to access admin users endpoint
+curl -s -H "Authorization: Bearer $EDITOR_TOKEN" $BASE_URL/admin/users \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>super_admin sidebar</td><td>"Admin" visible under System section</td></tr>
+        <tr><td>admin sidebar</td><td>"Admin" visible under System section</td></tr>
+        <tr><td>editor sidebar</td><td>"Admin" NOT visible</td></tr>
+        <tr><td>viewer sidebar</td><td>"Admin" NOT visible</td></tr>
+        <tr><td>API (editor → admin endpoint)</td><td>HTTP 403 Forbidden or role-insufficient error</td></tr>
+        <tr><td>Settings visibility</td><td>"Settings" only visible for super_admin</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A03 -->
+<div class="test-case" id="tc-a03">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A03</span>
+    <span class="tc-title">Tab Switching</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify all 5 tabs switch correctly and load their respective content.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin page.</li>
+      <li>Click each tab in order: Users → Invitations → Roles & Permissions → Login Activity → System.</li>
+      <li>For each tab, verify the content area updates without page reload.</li>
+      <li>Click back to Users tab — verify it re-renders correctly.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Tab</th><th>Expected Content</th></tr>
+        <tr><td>Users</td><td>Stats cards + search bar + user table with action icons</td></tr>
+        <tr><td>Invitations</td><td>Pending/accepted counts + invite table + "Send Invitation" button</td></tr>
+        <tr><td>Roles & Permissions</td><td>Role hierarchy display + 19-row permission matrix with ✅/❌ icons</td></tr>
+        <tr><td>Login Activity</td><td>Status filter buttons + stats cards + login history table</td></tr>
+        <tr><td>System</td><td>Server info cards + table statistics grid + recent migrations table</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 2 — USER MANAGEMENT CRUD           -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s2"><span class="section-num">02</span> User Management — CRUD Operations</h2>
+
+<p>These tests validate user listing, searching, creating, editing, and deleting via the Users tab and API.</p>
+
+<!-- TC-A04 -->
+<div class="test-case" id="tc-a04">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A04</span>
+    <span class="tc-title">List Users via API</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the user listing API returns paginated results with full user data.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/users | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>200 OK</td></tr>
+        <tr><td>Response shape</td><td><span class="inline-code">{ success: true, data: [...], pagination: {...} }</span></td></tr>
+        <tr><td>Pagination fields</td><td><span class="inline-code">page</span>, <span class="inline-code">limit</span>, <span class="inline-code">total</span>, <span class="inline-code">pages</span></td></tr>
+        <tr><td>Each user has</td><td><span class="inline-code">id</span>, <span class="inline-code">email</span>, <span class="inline-code">name</span>, <span class="inline-code">role</span>, <span class="inline-code">department</span>, <span class="inline-code">is_active</span>, <span class="inline-code">last_login_at</span></td></tr>
+        <tr><td>At least 1 user</td><td>System Admin (super_admin) exists</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A05 -->
+<div class="test-case" id="tc-a05">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A05</span>
+    <span class="tc-title">Search Users by Name/Email</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the search filter narrows results by name or email substring.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Users tab.</li>
+      <li>Type "admin" in the search box.</li>
+      <li>Verify only users matching "admin" in name or email appear.</li>
+      <li>Clear the search — verify all users reappear.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/admin/users?search=admin" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Search "admin"</td><td>Returns user(s) with "admin" in name or email</td></tr>
+        <tr><td>Search "xyz"</td><td>Returns empty array with total: 0</td></tr>
+        <tr><td>Clear search</td><td>Shows all users again</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A06 -->
+<div class="test-case" id="tc-a06">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A06</span>
+    <span class="tc-title">Filter Users by Role</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the role dropdown filters the user table correctly.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Users tab.</li>
+      <li>Select "Editor" from the role dropdown.</li>
+      <li>Verify only users with <span class="badge green">Editor</span> role appear.</li>
+      <li>Select "All Roles" — verify all users return.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" "$BASE_URL/admin/users?role=editor" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Filter "editor"</td><td>Only editor-role users appear</td></tr>
+        <tr><td>Filter "super_admin"</td><td>Only the System Admin appears</td></tr>
+        <tr><td>Filter "All Roles"</td><td>All users displayed</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A07 -->
+<div class="test-case" id="tc-a07">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A07</span>
+    <span class="tc-title">Filter Users by Status</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify status filter (Active/Inactive/Locked) works correctly.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Active users
+curl -s -H "$AUTH" "$BASE_URL/admin/users?status=active" | python3 -m json.tool
+
+# Inactive users
+curl -s -H "$AUTH" "$BASE_URL/admin/users?status=inactive" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Status "active"</td><td>Only is_active=true users</td></tr>
+        <tr><td>Status "inactive"</td><td>Only is_active=false users (may be empty)</td></tr>
+        <tr><td>Status "locked"</td><td>Only users with locked_until > NOW() (may be empty)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A08 -->
+<div class="test-case" id="tc-a08">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A08</span>
+    <span class="tc-title">Create User via UI Modal</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the "Add User" modal creates a new user with all fields.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Users tab.</li>
+      <li>Click <strong>"Add User"</strong> button.</li>
+      <li>Verify the Create User modal opens with fields: Email, Password, Full Name, Role, Department, Phone, Timezone.</li>
+      <li>Fill in: Email = <span class="inline-code">testuser@example.com</span>, Password = <span class="inline-code">Test1234</span>, Name = <span class="inline-code">Test User</span>, Role = Editor.</li>
+      <li>Click <strong>"Create User"</strong>.</li>
+      <li>Verify the modal closes and the new user appears in the table.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Modal opens</td><td>All form fields visible and empty</td></tr>
+        <tr><td>On submit</td><td>Modal closes, user appears in table</td></tr>
+        <tr><td>New user row</td><td>Shows name, email, role badge (green "Editor"), Active status</td></tr>
+        <tr><td>Stats update</td><td>Total Users count increments by 1</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A09 -->
+<div class="test-case" id="tc-a09">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A09</span>
+    <span class="tc-title">Create User via API</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify user creation API with all fields and validation.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X POST $BASE_URL/admin/users \
+  -H "$AUTH" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "apitest@example.com",
+    "password": "Strong1Pass",
+    "name": "API Test User",
+    "role": "viewer",
+    "department": "Testing",
+    "phone": "+1-555-0100",
+    "timezone": "America/New_York"
+  }' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>201 Created</td></tr>
+        <tr><td>Response</td><td><span class="inline-code">{ success: true, data: { id, email, name, role, ... } }</span></td></tr>
+        <tr><td>Role set</td><td>"viewer" as specified</td></tr>
+        <tr><td>Can login</td><td>New user can authenticate with provided credentials</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A10 -->
+<div class="test-case" id="tc-a10">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A10</span>
+    <span class="tc-title">Create User — Password Validation</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify password policy enforcement (min 8 chars, 1 uppercase, 1 number).</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Too short
+curl -s -X POST $BASE_URL/admin/users \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"weak@test.com","password":"abc","name":"Weak Pass"}' | python3 -m json.tool
+
+# No uppercase
+curl -s -X POST $BASE_URL/admin/users \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"weak2@test.com","password":"alllowercase1","name":"No Upper"}' | python3 -m json.tool
+
+# No number
+curl -s -X POST $BASE_URL/admin/users \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"weak3@test.com","password":"NoNumbersHere","name":"No Num"}' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>"abc" (too short)</td><td>400 — "Password must be at least 8 characters"</td></tr>
+        <tr><td>"alllowercase1"</td><td>400 — "Password must contain at least 1 uppercase letter and 1 number"</td></tr>
+        <tr><td>"NoNumbersHere"</td><td>400 — "Password must contain at least 1 uppercase letter and 1 number"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A11 -->
+<div class="test-case" id="tc-a11">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A11</span>
+    <span class="tc-title">Create User — Duplicate Email Prevention</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify duplicate email addresses are rejected.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X POST $BASE_URL/admin/users \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"Duplicate1","name":"Dupe User"}' \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>409 Conflict</td></tr>
+        <tr><td>Error message</td><td>"Email already registered"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A12 -->
+<div class="test-case" id="tc-a12">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A12</span>
+    <span class="tc-title">Edit User via UI Modal</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the edit modal updates user fields correctly.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Users tab.</li>
+      <li>Click the ✏️ (pencil) icon on a non-super_admin user.</li>
+      <li>Verify the Edit modal opens pre-filled with the user's current data.</li>
+      <li>Change the department to "Research" and role to "Admin".</li>
+      <li>Click <strong>"Update User"</strong>.</li>
+      <li>Verify the table row updates to reflect the changes.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X PUT $BASE_URL/admin/users/&lt;USER_ID&gt; \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"name":"Updated Name","department":"Research","role":"admin"}' \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Modal pre-fill</td><td>All fields populated with current user data</td></tr>
+        <tr><td>On save</td><td>Modal closes, table row updates immediately</td></tr>
+        <tr><td>API response</td><td>Returns updated user object with new values</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A13 -->
+<div class="test-case" id="tc-a13">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A13</span>
+    <span class="tc-title">View User Detail Modal</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the view detail modal shows user profile, login stats, and sessions.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Users tab.</li>
+      <li>Click the 👁️ (eye) icon on any user.</li>
+      <li>Verify the detail modal opens with Profile, Login History, and Sessions sub-tabs.</li>
+      <li>On the Profile tab, verify: email, role badge, department, status, created date, last login, login stats.</li>
+      <li>Click "Login History" sub-tab — verify login attempt table (may be empty).</li>
+      <li>Click "Sessions" sub-tab — verify active session cards.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/users/&lt;USER_ID&gt; | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Profile tab</td><td>Shows email, role, department, phone, timezone, status, dates</td></tr>
+        <tr><td>Login stats</td><td><span class="inline-code">successful_logins</span>, <span class="inline-code">failed_logins</span> counts</td></tr>
+        <tr><td>Active sessions</td><td>Integer count of current sessions</td></tr>
+        <tr><td>API response</td><td>Includes <span class="inline-code">login_stats</span> and <span class="inline-code">active_sessions</span> fields</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 3 — STATUS & PASSWORD              -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s3"><span class="section-num">03</span> User Management — Status &amp; Password</h2>
+
+<p>These tests validate user activation/deactivation, password resets, and soft-deletion.</p>
+
+<!-- TC-A14 -->
+<div class="test-case" id="tc-a14">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A14</span>
+    <span class="tc-title">Deactivate User</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify deactivating a user sets is_active=false, revokes sessions, and prevents login.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Users tab.</li>
+      <li>Click the 🔒 (lock) icon on a non-super_admin user.</li>
+      <li>Confirm the deactivation prompt.</li>
+      <li>Verify the status badge changes from <span class="verdict pass">Active</span> to <span class="verdict fail">Inactive</span>.</li>
+      <li>Try logging in as the deactivated user — verify login fails.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X PATCH $BASE_URL/admin/users/&lt;USER_ID&gt;/toggle \
+  -H "$AUTH" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Response</td><td><span class="inline-code">is_active: false</span>, <span class="inline-code">deactivated_at</span> populated</td></tr>
+        <tr><td>Sessions</td><td>All active sessions for user are revoked</td></tr>
+        <tr><td>Login attempt</td><td>Returns 403 "Account is deactivated"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A15 -->
+<div class="test-case" id="tc-a15">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A15</span>
+    <span class="tc-title">Reactivate User</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify reactivating a deactivated user restores login access.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Users tab, find a deactivated user (red "Inactive" badge).</li>
+      <li>Click the 🔓 (unlock) icon.</li>
+      <li>Confirm the activation prompt.</li>
+      <li>Verify the status changes to <span class="verdict pass">Active</span>.</li>
+      <li>Try logging in as the reactivated user — verify login succeeds.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Status</td><td><span class="inline-code">is_active: true</span></td></tr>
+        <tr><td>deactivated_at</td><td>Set to null</td></tr>
+        <tr><td>Login</td><td>Succeeds with valid credentials</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A16 -->
+<div class="test-case" id="tc-a16">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A16</span>
+    <span class="tc-title">Cannot Deactivate Super Admin</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the super_admin account cannot be deactivated or deleted.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Users tab, observe the System Admin row.</li>
+      <li>Verify that lock/delete icons are NOT shown for the super_admin user.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Get super_admin ID
+SA_ID=$(curl -s -H "$AUTH" "$BASE_URL/admin/users?role=super_admin" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['id'])")
+
+# Try to deactivate
+curl -s -X PATCH "$BASE_URL/admin/users/$SA_ID/toggle" -H "$AUTH" | python3 -m json.tool
+
+# Try to delete
+curl -s -X DELETE "$BASE_URL/admin/users/$SA_ID" -H "$AUTH" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Toggle attempt</td><td>403 — "Cannot deactivate super_admin account"</td></tr>
+        <tr><td>Delete attempt</td><td>403 — "Cannot delete super_admin account"</td></tr>
+        <tr><td>UI actions</td><td>Lock/delete icons hidden for super_admin row</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A17 -->
+<div class="test-case" id="tc-a17">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A17</span>
+    <span class="tc-title">Admin Reset Password</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify admin-triggered password reset generates a temporary password.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Users tab, click the 🔑 (key) icon on a user.</li>
+      <li>Confirm the reset prompt.</li>
+      <li>Verify a modal appears showing the temporary password.</li>
+      <li>Verify the "Copy" button copies the password to clipboard.</li>
+      <li>Note the warning: "This password is shown only once".</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X POST $BASE_URL/admin/users/&lt;USER_ID&gt;/reset-password \
+  -H "$AUTH" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Response</td><td><span class="inline-code">{ email: "...", temporaryPassword: "Tmp..." }</span></td></tr>
+        <tr><td>Temp password format</td><td>Starts with "Tmp", contains hex chars, ends with ! and digits</td></tr>
+        <tr><td>Old password</td><td>No longer works for login</td></tr>
+        <tr><td>New password</td><td>Login with temporaryPassword succeeds</td></tr>
+        <tr><td>Sessions revoked</td><td>All previous sessions for user are invalidated</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A18 -->
+<div class="test-case" id="tc-a18">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A18</span>
+    <span class="tc-title">Soft-Delete User</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify deleting a user is a soft-delete (deactivates, doesn't remove from DB).</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X DELETE $BASE_URL/admin/users/&lt;USER_ID&gt; \
+  -H "$AUTH" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Response</td><td><span class="inline-code">{ message: "User deleted" }</span></td></tr>
+        <tr><td>User in DB</td><td>Still exists with is_active=false, deactivated_at set</td></tr>
+        <tr><td>Audit references</td><td>Existing audit_log entries still reference this user_id</td></tr>
+        <tr><td>Cannot self-delete</td><td>400 — "Cannot delete your own account"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 4 — INVITATIONS                    -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s4"><span class="section-num">04</span> Invitations System</h2>
+
+<p>These tests validate the email-based invitation workflow: creating, viewing, revoking, and accepting invitations.</p>
+
+<!-- TC-A19 -->
+<div class="test-case" id="tc-a19">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A19</span>
+    <span class="tc-title">Send Invitation via UI</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Send Invitation modal creates a pending invite with a shareable link.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Invitations tab.</li>
+      <li>Click <strong>"Send Invitation"</strong> button.</li>
+      <li>Fill in: Email = <span class="inline-code">newhire@company.com</span>, Role = Editor, Department = Product.</li>
+      <li>Click <strong>"Send Invitation"</strong>.</li>
+      <li>Verify a success modal appears with the invite link and Copy button.</li>
+      <li>Close the modal — verify the new invitation appears in the table.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Success modal</td><td>Shows invite link with token, "Copy Link" button</td></tr>
+        <tr><td>Expires date</td><td>7 days from now</td></tr>
+        <tr><td>Table entry</td><td>Email, role badge (green "Editor"), status "pending" (amber), invited_by name</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A20 -->
+<div class="test-case" id="tc-a20">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A20</span>
+    <span class="tc-title">Send Invitation via API</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify invitation creation API returns token and metadata.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X POST $BASE_URL/admin/invitations \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"invited@test.com","role":"viewer","department":"QA"}' \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>201 Created</td></tr>
+        <tr><td>Response fields</td><td><span class="inline-code">id</span>, <span class="inline-code">email</span>, <span class="inline-code">role</span>, <span class="inline-code">token</span>, <span class="inline-code">status</span>, <span class="inline-code">expires_at</span></td></tr>
+        <tr><td>Token length</td><td>64-char hex string</td></tr>
+        <tr><td>Status</td><td>"pending"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A21 -->
+<div class="test-case" id="tc-a21">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A21</span>
+    <span class="tc-title">Duplicate Invitation Prevention</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify sending a duplicate invitation to the same email is rejected.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Try to invite an already-pending email
+curl -s -X POST $BASE_URL/admin/invitations \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"invited@test.com","role":"editor"}' | python3 -m json.tool
+
+# Try to invite an existing user
+curl -s -X POST $BASE_URL/admin/invitations \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","role":"viewer"}' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Pending duplicate</td><td>409 — "A pending invitation already exists for this email"</td></tr>
+        <tr><td>Existing user</td><td>409 — "User with this email already exists"</td></tr>
+        <tr><td>super_admin role</td><td>403 — "Cannot invite users as super_admin"</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A22 -->
+<div class="test-case" id="tc-a22">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A22</span>
+    <span class="tc-title">Accept Invitation</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify accepting an invitation creates a new user account.</p>
+
+    <h4>📌 Via API (public endpoint — no auth required)</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X POST $BASE_URL/admin/invitations/accept \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "&lt;INVITATION_TOKEN&gt;",
+    "password": "Accept1Pass",
+    "name": "Accepted User"
+  }' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>201 Created</td></tr>
+        <tr><td>User created</td><td>User appears in admin users list with the invitation's role</td></tr>
+        <tr><td>Invite status</td><td>Changes from "pending" to "accepted" with accepted_at date</td></tr>
+        <tr><td>Can login</td><td>New user can authenticate with provided password</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A23 -->
+<div class="test-case" id="tc-a23">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A23</span>
+    <span class="tc-title">Revoke Invitation</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify revoking a pending invitation prevents it from being accepted.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Invitations tab, find a pending invitation.</li>
+      <li>Click the ✕ (revoke) button.</li>
+      <li>Confirm the revocation prompt.</li>
+      <li>Verify the status changes to <span class="verdict fail">revoked</span>.</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X DELETE $BASE_URL/admin/invitations/&lt;INVITE_ID&gt; \
+  -H "$AUTH" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Response</td><td><span class="inline-code">{ message: "Invitation revoked" }</span></td></tr>
+        <tr><td>Accept revoked</td><td>Trying to accept returns 400 "Invalid or expired invitation"</td></tr>
+        <tr><td>Table status</td><td>Displays "revoked" in red</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A24 -->
+<div class="test-case" id="tc-a24">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A24</span>
+    <span class="tc-title">Copy Invite Link</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the clipboard copy button on pending invitations works.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Invitations tab, find a pending invitation.</li>
+      <li>Click the 📋 (clipboard) icon.</li>
+      <li>Paste from clipboard — verify the URL contains the invite token.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Copied URL format</td><td><span class="inline-code">http://localhost:5173/invite/&lt;64-char-token&gt;</span></td></tr>
+        <tr><td>Non-pending invites</td><td>No copy button shown (only for pending status)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 5 — ROLES & PERMISSIONS            -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s5"><span class="section-num">05</span> Roles &amp; Permissions Matrix</h2>
+
+<p>The Roles & Permissions tab provides a read-only reference of the AgentShield 4-role hierarchy and permission assignments.</p>
+
+<!-- TC-A25 -->
+<div class="test-case" id="tc-a25">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A25</span>
+    <span class="tc-title">Role Hierarchy Display</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the role hierarchy visual shows all 4 roles in order.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Roles & Permissions tab.</li>
+      <li>Verify the role hierarchy card displays: Super Admin → Admin → Editor → Viewer.</li>
+      <li>Verify each role has its color-coded badge (purple, blue, green, gray).</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Order</td><td>Super Admin → Admin → Editor → Viewer (left to right)</td></tr>
+        <tr><td>Arrows</td><td>"→" separators between each role</td></tr>
+        <tr><td>Description</td><td>"AgentShield uses a hierarchical role model" text present</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A26 -->
+<div class="test-case" id="tc-a26">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A26</span>
+    <span class="tc-title">Permission Matrix Content</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the permission matrix has all 19 rows with correct checkmark assignments.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Roles & Permissions tab, scroll to the permission matrix table.</li>
+      <li>Count the total rows — should be 19.</li>
+      <li>Verify key permissions:
+        <ul>
+          <li>"View dashboard & observability" → ✅ for all 4 roles</li>
+          <li>"Create / edit agents" → ✅ for super_admin, admin, editor; ❌ for viewer</li>
+          <li>"Manage users & invitations" → ✅ for super_admin, admin; ❌ for editor, viewer</li>
+          <li>"Module toggles (enable/disable)" → ✅ only for super_admin</li>
+        </ul>
+      </li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Total rows</td><td>19 permission rows</td></tr>
+        <tr><td>Columns</td><td>Permission, Super Admin, Admin, Editor, Viewer</td></tr>
+        <tr><td>Icons</td><td>✅ (green checkmark) for granted, ❌ (gray X) for denied</td></tr>
+        <tr><td>Hierarchy</td><td>Each higher role has all permissions of lower roles plus more</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 6 — LOGIN ACTIVITY & SECURITY      -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s6"><span class="section-num">06</span> Login Activity &amp; Security</h2>
+
+<p>These tests validate login history tracking, status filtering, account lockout, and the full security workflow.</p>
+
+<!-- TC-A27 -->
+<div class="test-case" id="tc-a27">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A27</span>
+    <span class="tc-title">Login Activity Tab Content</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the Login Activity tab shows all login attempts with correct metadata.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → Login Activity tab.</li>
+      <li>Verify stats cards: Total Attempts, Successful, Failed/Locked.</li>
+      <li>Verify table columns: User, Status, IP Address, Device, Time, Reason.</li>
+      <li>Verify at least 1 entry exists (your current login).</li>
+    </ol>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/login-history | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Stats cards</td><td>3 cards with numeric counts</td></tr>
+        <tr><td>Table columns</td><td>User (name+email), Status (badge), IP, Device, Time, Reason</td></tr>
+        <tr><td>Status badges</td><td>Green "success", Red "failed", Amber "locked"</td></tr>
+        <tr><td>API pagination</td><td><span class="inline-code">pagination</span> object with total, page, limit</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A28 -->
+<div class="test-case" id="tc-a28">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A28</span>
+    <span class="tc-title">Login History — Failed Login Tracking</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify failed login attempts are recorded with failure reason.</p>
+
+    <h4>📌 Via API (generate failures)</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Intentional failed login
+curl -s -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@agentshield.local","password":"wrongpass"}' \
+  | python3 -m json.tool
+
+# Check login history
+curl -s -H "$AUTH" "$BASE_URL/admin/login-history?status=failed" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Login response</td><td>401 — "Invalid email or password"</td></tr>
+        <tr><td>History entry</td><td>New entry with status "failed", failure_reason "Invalid password"</td></tr>
+        <tr><td>IP tracked</td><td><span class="inline-code">ip_address</span> populated (e.g., "::1" or "127.0.0.1")</td></tr>
+        <tr><td>User-agent</td><td><span class="inline-code">user_agent</span> populated with curl/browser string</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A29 -->
+<div class="test-case" id="tc-a29">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A29</span>
+    <span class="tc-title">Login Activity — Status Filter</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify status filter buttons (All, Success, Failed, Locked) work correctly.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the Login Activity tab, click "Success" filter button.</li>
+      <li>Verify only green "success" status entries appear.</li>
+      <li>Click "Failed" — verify only red "failed" entries appear.</li>
+      <li>Click "All" — verify all entries return.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Active filter</td><td>Button has accent styling when selected</td></tr>
+        <tr><td>Table updates</td><td>Only matching status entries shown</td></tr>
+        <tr><td>Stats cards update</td><td>Numbers reflect filtered data</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A30 -->
+<div class="test-case" id="tc-a30">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A30</span>
+    <span class="tc-title">Account Lockout After 5 Failed Attempts</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify account is locked after 5 consecutive failed login attempts.</p>
+
+    <div class="alert danger">
+      <strong>⚠️ Warning</strong>
+      Do NOT run this against the super_admin account unless you want to wait 30 minutes. Use a test user instead.
+    </div>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Create a test user for lockout testing
+curl -s -X POST $BASE_URL/admin/users \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"email":"locktest@test.com","password":"Lock1234","name":"Lock Test"}' &gt; /dev/null
+
+# Fail 5 times
+for i in {1..5}; do
+  echo "Attempt $i:"
+  curl -s -X POST $BASE_URL/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"email":"locktest@test.com","password":"wrong"}' \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"  Status: {d.get('error','OK')}\")"
+done
+
+# 6th attempt — should say locked
+echo "Attempt 6 (should be locked):"
+curl -s -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"locktest@test.com","password":"Lock1234"}' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Attempts 1-4</td><td>401 "Invalid email or password"</td></tr>
+        <tr><td>Attempt 5</td><td>423 "Account locked after 5 failed attempts. Try again in 30 minutes."</td></tr>
+        <tr><td>Attempt 6 (correct pw)</td><td>423 "Account is locked. Try again in X minute(s)."</td></tr>
+        <tr><td>Login history</td><td>5 "failed" entries + 1 "locked" entry</td></tr>
+        <tr><td>User status</td><td>Users table shows amber "Locked" badge</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A31 -->
+<div class="test-case" id="tc-a31">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A31</span>
+    <span class="tc-title">Login History for Specific User</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify per-user login history endpoint returns only that user's attempts.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/users/&lt;USER_ID&gt;/login-history | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>All entries</td><td>Only entries for the specified user_id</td></tr>
+        <tr><td>Sort order</td><td>Most recent first (created_at DESC)</td></tr>
+        <tr><td>Fields present</td><td>id, email, status, ip_address, user_agent, failure_reason, created_at</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 7 — SYSTEM DIAGNOSTICS             -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s7"><span class="section-num">07</span> System Diagnostics</h2>
+
+<p>The System tab provides database statistics, server information, and migration history.</p>
+
+<!-- TC-A32 -->
+<div class="test-case" id="tc-a32">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A32</span>
+    <span class="tc-title">System Stats via API</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the system stats API returns real database metrics.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/system/stats | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>tables.users</td><td>Integer ≥ 1 (at least System Admin)</td></tr>
+        <tr><td>tables.agents</td><td>Integer ≥ 0</td></tr>
+        <tr><td>tables.audit_records</td><td>Integer (may be large — e.g., 16000+)</td></tr>
+        <tr><td>database.size</td><td>Human-readable string (e.g., "18 MB")</td></tr>
+        <tr><td>server.node_version</td><td>Node.js version string (e.g., "v18.20.8")</td></tr>
+        <tr><td>server.memory_mb</td><td>Heap memory in MB</td></tr>
+        <tr><td>recent_migrations</td><td>Array of {filename, applied_at} objects</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A33 -->
+<div class="test-case" id="tc-a33">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A33</span>
+    <span class="tc-title">System Tab — Server Info Cards</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the System tab UI displays all 4 server info cards with real data.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>Navigate to Admin → System tab.</li>
+      <li>Verify 4 cards at top: Database Size, Node.js, Memory Usage, DB Uptime.</li>
+      <li>Verify each card has a numeric value (not "undefined" or "[object Object]").</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Card</th><th>Expected Value</th></tr>
+        <tr><td>Database Size</td><td>e.g., "18 MB" — not empty</td></tr>
+        <tr><td>Node.js</td><td>e.g., "v18.20.8"</td></tr>
+        <tr><td>Memory Usage</td><td>e.g., "49 MB" — integer + "MB"</td></tr>
+        <tr><td>DB Uptime</td><td>e.g., "2d 5h 30m" — formatted duration</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A34 -->
+<div class="test-case" id="tc-a34">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A34</span>
+    <span class="tc-title">System Tab — Table Statistics Grid</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the table statistics grid shows 13 table row counts with icons.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the System tab, scroll to the "Table Statistics" section.</li>
+      <li>Count the stat cards — should be 13.</li>
+      <li>Verify each card has: emoji icon, label, and numeric row count.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Total cards</td><td>13 table stat cards</td></tr>
+        <tr><td>Cards include</td><td>Users, Active Users, Agents, Policies, Workflows, Audit Records, Cost Records, Compliance Checks, Eval Runs, Login Attempts, Active Sessions, API Keys, Pending Invitations</td></tr>
+        <tr><td>Values</td><td>All integers (some may be 0)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A35 -->
+<div class="test-case" id="tc-a35">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A35</span>
+    <span class="tc-title">System Tab — Recent Migrations</span>
+    <span class="tc-priority low">Low</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify the recent migrations table shows applied migration files.</p>
+
+    <h4>📌 Via Dashboard UI</h4>
+    <ol class="steps">
+      <li>On the System tab, scroll to the "Recent Migrations" section.</li>
+      <li>Verify the table has columns: Migration File, Applied At.</li>
+      <li>Verify the most recent entry is <span class="inline-code">013_admin_module.sql</span>.</li>
+    </ol>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Columns</td><td>Migration File (monospace), Applied At (date)</td></tr>
+        <tr><td>Up to 5 entries</td><td>Most recent 5 migrations shown</td></tr>
+        <tr><td>Latest migration</td><td><span class="inline-code">013_admin_module.sql</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 8 — SELF-SERVICE PROFILE            -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="s8"><span class="section-num">08</span> Self-Service Profile</h2>
+
+<p>These tests validate the self-service endpoints where authenticated users can view/edit their own profile, change password, and manage their sessions.</p>
+
+<!-- TC-A36 -->
+<div class="test-case" id="tc-a36">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A36</span>
+    <span class="tc-title">Get Own Profile</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify authenticated users can retrieve their own profile with login stats.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/profile | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>HTTP Status</td><td>200 OK</td></tr>
+        <tr><td>Data shape</td><td>Full user object with <span class="inline-code">login_stats</span> and <span class="inline-code">active_sessions</span></td></tr>
+        <tr><td>login_stats</td><td><span class="inline-code">successful_logins</span> ≥ 1 (current session counts)</td></tr>
+        <tr><td>No auth</td><td>Returns 401 if no token provided</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A37 -->
+<div class="test-case" id="tc-a37">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A37</span>
+    <span class="tc-title">Update Own Profile</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify users can update their own name, phone, timezone, and department (but NOT role).</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -X PUT $BASE_URL/admin/profile \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"name":"Updated Admin","phone":"+1-555-0101","timezone":"America/Los_Angeles"}' \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Name updated</td><td>Returns <span class="inline-code">name: "Updated Admin"</span></td></tr>
+        <tr><td>Phone updated</td><td>Returns <span class="inline-code">phone: "+1-555-0101"</span></td></tr>
+        <tr><td>Role unchanged</td><td>Profile endpoint strips role from self-service updates</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A38 -->
+<div class="test-case" id="tc-a38">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A38</span>
+    <span class="tc-title">Change Own Password</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify authenticated users can change their own password with current password verification.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># Change password (use a test user, NOT the admin)
+curl -s -X POST $BASE_URL/admin/profile/change-password \
+  -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"currentPassword":"admin123","newPassword":"NewAdmin123"}' \
+  | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Success response</td><td><span class="inline-code">{ message: "Password changed successfully" }</span></td></tr>
+        <tr><td>Wrong current password</td><td>401 — "Current password is incorrect"</td></tr>
+        <tr><td>Weak new password</td><td>400 — Password policy error</td></tr>
+        <tr><td>Login with new password</td><td>Succeeds</td></tr>
+        <tr><td>Login with old password</td><td>Fails with 401</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A39 -->
+<div class="test-case" id="tc-a39">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A39</span>
+    <span class="tc-title">View Own Sessions</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify users can see their own active sessions.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/profile/sessions | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Response</td><td>Array of session objects</td></tr>
+        <tr><td>Session fields</td><td><span class="inline-code">id</span>, <span class="inline-code">ip_address</span>, <span class="inline-code">device_label</span>, <span class="inline-code">last_activity</span>, <span class="inline-code">expires_at</span></td></tr>
+        <tr><td>At least 1 session</td><td>Current session should appear</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A40 -->
+<div class="test-case" id="tc-a40">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A40</span>
+    <span class="tc-title">View Own Login History</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify users can see their own login attempt history.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code>curl -s -H "$AUTH" $BASE_URL/admin/profile/login-history | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Only own entries</td><td>All entries have the authenticated user's email</td></tr>
+        <tr><td>Sorted</td><td>Most recent first</td></tr>
+        <tr><td>Includes success</td><td>At least one "success" entry for current login</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A41 -->
+<div class="test-case" id="tc-a41">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A41</span>
+    <span class="tc-title">Revoke Own Session</span>
+    <span class="tc-priority medium">Medium</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify users can revoke their own sessions (e.g., log out from another device).</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># List sessions first
+SESSIONS=$(curl -s -H "$AUTH" $BASE_URL/admin/profile/sessions)
+echo "$SESSIONS" | python3 -m json.tool
+
+# Revoke a specific session
+SESSION_ID=$(echo "$SESSIONS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['data'][0]['id'])")
+curl -s -X DELETE "$BASE_URL/admin/profile/sessions/$SESSION_ID" -H "$AUTH" | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>Revoke response</td><td><span class="inline-code">{ message: "Session revoked" }</span></td></tr>
+        <tr><td>Session list</td><td>Session no longer appears in active sessions</td></tr>
+        <tr><td>Cannot revoke others</td><td>404 if session belongs to another user</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TC-A42 -->
+<div class="test-case" id="tc-a42">
+  <div class="test-case-header" onclick="toggleTC(this)">
+    <span class="tc-id">TC-A42</span>
+    <span class="tc-title">Unauthenticated Profile Access</span>
+    <span class="tc-priority high">High</span>
+    <span class="tc-chevron">▼</span>
+  </div>
+  <div class="test-case-body">
+    <p><strong>Objective:</strong> Verify profile endpoints return 401 without authentication.</p>
+
+    <h4>📌 Via API</h4>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><code># No auth header
+curl -s $BASE_URL/admin/profile | python3 -m json.tool
+curl -s $BASE_URL/admin/profile/sessions | python3 -m json.tool
+curl -s $BASE_URL/admin/profile/login-history | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="io-section">
+      <div class="io-label">📤 Expected Result</div>
+      <table class="io-table">
+        <tr><th>Check</th><th>Expected</th></tr>
+        <tr><td>All endpoints</td><td>401 — "Authentication required" or JWT error</td></tr>
+        <tr><td>No data leaked</td><td>No user data returned without valid token</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- APPENDIX — API ENDPOINT REFERENCE          -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="appendix"><span class="section-num">A</span> API Endpoint Reference</h2>
+
+<div class="card purple">
+  <div class="card-title">🔗 User Management Endpoints</div>
+  <table class="io-table">
+    <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/users</span></td><td>admin+</td><td>List users (paginated, filterable)</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/users/:id</span></td><td>admin+</td><td>Get user detail with login stats</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/admin/users</span></td><td>admin+</td><td>Create user</td></tr>
+    <tr><td><span class="badge orange">PUT</span></td><td><span class="inline-code">/admin/users/:id</span></td><td>admin+</td><td>Update user fields</td></tr>
+    <tr><td><span class="badge orange">PATCH</span></td><td><span class="inline-code">/admin/users/:id/toggle</span></td><td>admin+</td><td>Activate/deactivate user</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/admin/users/:id/reset-password</span></td><td>admin+</td><td>Admin reset password</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/admin/users/:id</span></td><td>admin+</td><td>Soft-delete user</td></tr>
+  </table>
+</div>
+
+<div class="card blue">
+  <div class="card-title">🔗 Login History &amp; Sessions Endpoints</div>
+  <table class="io-table">
+    <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/login-history</span></td><td>admin+</td><td>All login attempts (paginated)</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/users/:id/login-history</span></td><td>admin+</td><td>User-specific login history</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/users/:id/sessions</span></td><td>admin+</td><td>User's active sessions</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/admin/users/:id/sessions</span></td><td>admin+</td><td>Revoke all user sessions</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/admin/users/:id/sessions/:sid</span></td><td>admin+</td><td>Revoke specific session</td></tr>
+  </table>
+</div>
+
+<div class="card green">
+  <div class="card-title">🔗 Self-Service Profile Endpoints</div>
+  <table class="io-table">
+    <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/profile</span></td><td>any</td><td>Get own profile</td></tr>
+    <tr><td><span class="badge orange">PUT</span></td><td><span class="inline-code">/admin/profile</span></td><td>any</td><td>Update own profile</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/admin/profile/change-password</span></td><td>any</td><td>Change own password</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/profile/login-history</span></td><td>any</td><td>Own login history</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/profile/sessions</span></td><td>any</td><td>Own active sessions</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/admin/profile/sessions/:sid</span></td><td>any</td><td>Revoke own session</td></tr>
+  </table>
+</div>
+
+<div class="card orange">
+  <div class="card-title">🔗 Invitations &amp; System Endpoints</div>
+  <table class="io-table">
+    <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/admin/invitations</span></td><td>admin+</td><td>Send invitation</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/invitations</span></td><td>admin+</td><td>List invitations</td></tr>
+    <tr><td><span class="badge red">DELETE</span></td><td><span class="inline-code">/admin/invitations/:id</span></td><td>admin+</td><td>Revoke invitation</td></tr>
+    <tr><td><span class="badge blue">POST</span></td><td><span class="inline-code">/admin/invitations/accept</span></td><td>public</td><td>Accept invitation (no auth)</td></tr>
+    <tr><td><span class="badge green">GET</span></td><td><span class="inline-code">/admin/system/stats</span></td><td>admin+</td><td>System statistics</td></tr>
+  </table>
+</div>
+
+<div class="alert success">
+  <strong>✅ Test Suite Complete</strong>
+  All 42 test cases cover the full Admin module: navigation &amp; layout (3), user CRUD (10), status &amp; password management (5),
+  invitations (6), roles &amp; permissions (2), login activity &amp; security (5), system diagnostics (4), and self-service profile (7).
+</div>
+
+</div><!-- /container -->
+
+<script>
+function toggleTC(header) {
+  const tc = header.closest('.test-case');
+  tc.classList.toggle('open');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// Auto-open first test case in each section
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.test-case').forEach(tc => {
+    // Only keep explicitly marked ones open
+  });
+});
+</script>
+
+</body>
+</html>
