@@ -16,6 +16,7 @@ const db = require('./db');
 const agentRoutes = require('./registry/routes');
 const adminRoutes = require('./admin/routes');
 const gatewayRoutes = require('./gateway/proxy');
+const mcpProxyRoutes = require('./gateway/mcp-proxy');
 const reportRoutes = require('./reports/routes');
 
 // Middleware imports
@@ -82,6 +83,7 @@ app.get('/ready', (req, res) => {
 app.use('/api/v1/agents', agentRoutes);          // Agent Registry
 app.use('/api/v1', adminRoutes);                  // Admin API (policies, workflows, budgets, etc.)
 app.use('/api/v1/gateway', gatewayRoutes);       // Gateway Proxy (agent invocation, workflows)
+app.use('/mcp', mcpProxyRoutes);                 // MCP Protocol Proxy (native MCP for Claude Desktop, Cursor, etc.)
 app.use('/api/v1/reports', reportRoutes);         // Reports Engine
 
 // ============================================
@@ -124,6 +126,7 @@ async function start() {
             logger.info(`    Admin:     http://localhost:${config.server.port}/api/v1/dashboard`);
             logger.info(`    Agents:    http://localhost:${config.server.port}/api/v1/agents`);
             logger.info(`    Gateway:   http://localhost:${config.server.port}/api/v1/gateway/agents/:slug/invoke`);
+            logger.info(`    MCP Proxy: http://localhost:${config.server.port}/mcp/:agentSlug`);
             logger.info('='.repeat(60));
         });
 

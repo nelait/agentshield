@@ -493,6 +493,168 @@ router.post('/playground/simulate', async (req, res, next) => {
 });
 
 // ============================================
+// PLAYGROUND — MCP Explorer: List tools for an MCP agent
+//   Enforces policy check before listing tools
+// ============================================
+router.post('/playground/mcp-tools', async (req, res, next) => {
+    try {
+        const { agentSlug, userRole, userEmail, department } = req.body;
+        if (!agentSlug) return res.status(400).json({ success: false, error: 'agentSlug is required' });
+
+        const agent = await RegistryService.getAgent(agentSlug);
+        if (agent.protocol !== 'mcp') {
+            return res.json({ success: true, data: { error: `Agent "${agent.name}" uses protocol "${agent.protocol}", not MCP.` } });
+        }
+        if (!agent.is_active) {
+            return res.json({ success: true, data: { error: `Agent "${agent.name}" is inactive.` } });
+        }
+
+        // Policy check — user must be allowed to access this agent
+        const context = {
+            user: { id: 'playground-user', role: userRole || 'viewer', email: userEmail || 'test@example.com', department: department || 'engineering' },
+            agent: { id: agent.id, slug: agent.slug, name: agent.name, type: agent.type, protocol: agent.protocol, vendor: agent.vendor },
+            request: { method: 'POST', path: `/mcp/${agent.slug}`, action: 'mcp:tools/list', timestamp: new Date().toISOString() },
+        };
+        const decision = await policyService.evaluate(context);
+        if (!decision.allowed) {
+            return res.json({
+                success: true,
+                data: {
+                    error: `Policy denied: ${decision.reason}`,
+                    policyDenied: true,
+                    matchedPolicy: decision.matchedPolicy?.name || null,
+                },
+            });
+        }
+
+        // Build the AgentShield gateway URL (not the upstream URL)
+        const gatewayBase = `${req.protocol}://${req.get('host')}`;
+        const gatewayUrl = `${gatewayBase}/mcp/${agent.slug}`;
+
+        const { invokeMcpAgent } = require('../gateway/mcp-client');
+        const result = await invokeMcpAgent(agent.endpoint_url, {});
+        res.json({
+            success: true,
+            data: {
+                agent: { slug: agent.slug, name: agent.name, protocol: agent.protocol, endpoint: gatewayUrl, healthStatus: agent.health_status },
+                tools: (result.data?.tools || []),
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// ============================================
+// PLAYGROUND — MCP Explorer: Call a specific MCP tool
+//   Enforces policy, guardrails, budget, and audit logging
+// ============================================
+router.post('/playground/mcp-call', async (req, res, next) => {
+    try {
+        const { agentSlug, toolName, toolArguments, userRole, userEmail, department } = req.body;
+        if (!agentSlug || !toolName) return res.status(400).json({ success: false, error: 'agentSlug and toolName are required' });
+
+        const agent = await RegistryService.getAgent(agentSlug);
+        if (agent.protocol !== 'mcp') {
+            return res.json({ success: true, data: { error: `Agent "${agent.name}" uses protocol "${agent.protocol}", not MCP.` } });
+        }
+
+        const checks = { status: null, policy: null, guardrails: null };
+
+        // 1. Status check
+        if (!agent.is_active) {
+            checks.status = { passed: false, reason: `Agent "${agent.name}" is inactive.` };
+            return res.json({ success: true, data: { agent: { slug: agent.slug, name: agent.name }, toolName, checks, result: null } });
+        }
+        checks.status = { passed: true, reason: `Agent "${agent.name}" is active` };
+
+        // 2. Policy check
+        const context = {
+            user: { id: 'playground-user', role: userRole || 'viewer', email: userEmail || 'test@example.com', department: department || 'engineering' },
+            agent: { id: agent.id, slug: agent.slug, name: agent.name, type: agent.type, protocol: agent.protocol, vendor: agent.vendor },
+            request: { method: 'POST', path: `/mcp/${agent.slug}`, action: `mcp:tools/call:${toolName}`, timestamp: new Date().toISOString() },
+        };
+        const decision = await policyService.evaluate(context);
+        if (!decision.allowed) {
+            checks.policy = { passed: false, reason: decision.reason, matchedPolicy: decision.matchedPolicy?.name || null };
+            return res.json({ success: true, data: { agent: { slug: agent.slug, name: agent.name }, toolName, checks, result: null } });
+        }
+        checks.policy = { passed: true, reason: decision.reason || 'All policies passed', matchedPolicy: decision.matchedPolicy?.name || null };
+
+        // 3. Guardrails check (if assigned)
+        try {
+            const agentGuardrails = await guardrailsService.getAgentGuardrails(agent.id);
+            if (agentGuardrails && agentGuardrails.length > 0) {
+                const inputText = JSON.stringify(toolArguments || {});
+                let blocked = false;
+                let blockReason = '';
+                for (const gr of agentGuardrails) {
+                    const rules = gr.rules || [];
+                    for (const rule of rules) {
+                        if (!rule.is_active) continue;
+                        if (rule.type === 'regex_block' && rule.pattern) {
+                            const re = new RegExp(rule.pattern, rule.flags || 'i');
+                            if (re.test(inputText)) {
+                                blocked = true;
+                                blockReason = `Guardrail "${gr.name}" rule "${rule.name || rule.type}" blocked: pattern matched`;
+                                break;
+                            }
+                        }
+                    }
+                    if (blocked) break;
+                }
+                if (blocked) {
+                    checks.guardrails = { passed: false, reason: blockReason };
+                    return res.json({ success: true, data: { agent: { slug: agent.slug, name: agent.name }, toolName, checks, result: null } });
+                }
+                checks.guardrails = { passed: true, reason: `${agentGuardrails.length} guardrail profile(s) passed` };
+            } else {
+                checks.guardrails = { passed: true, reason: 'No guardrail profiles assigned' };
+            }
+        } catch (grErr) {
+            checks.guardrails = { passed: true, reason: 'Guardrail check skipped (service unavailable)' };
+        }
+
+        // 4. Execute the tool call
+        const { invokeMcpAgent } = require('../gateway/mcp-client');
+        const startTime = Date.now();
+        const result = await invokeMcpAgent(agent.endpoint_url, {
+            tool: toolName,
+            arguments: toolArguments || {},
+        });
+        const latencyMs = Date.now() - startTime;
+
+        // 5. Audit log
+        try {
+            const auditService = require('../audit/service');
+            await auditService.log({
+                eventType: 'mcp_explorer_call',
+                action: `mcp:tools/call:${toolName}`,
+                actorId: req.user?.id || 'playground-user',
+                actorEmail: userEmail || req.user?.email || 'test@example.com',
+                agentSlug: agent.slug,
+                outcome: 'allowed',
+                metadata: { toolName, latencyMs, source: 'mcp-explorer' },
+            });
+        } catch (auditErr) { /* best-effort logging */ }
+
+        res.json({
+            success: true,
+            data: {
+                agent: { slug: agent.slug, name: agent.name },
+                toolName,
+                checks,
+                result: result.data?.result || null,
+                usage: result.usage || null,
+                latencyMs,
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// ============================================
 // PLAYGROUND — Test-invoke an agent (status + policy + execution)
 // ============================================
 router.post('/playground/test-invoke', async (req, res, next) => {

@@ -2,6 +2,8 @@ const path = require('path');
 const { Client } = require('@modelcontextprotocol/sdk/client');
 const sseModulePath = path.join(path.dirname(require.resolve('@modelcontextprotocol/sdk/client')), 'sse.js');
 const { SSEClientTransport } = require(sseModulePath);
+const streamableHttpModulePath = path.join(path.dirname(require.resolve('@modelcontextprotocol/sdk/client')), 'streamableHttp.js');
+const { StreamableHTTPClientTransport } = require(streamableHttpModulePath);
 const logger = require('../config/logger');
 
 // ─── OpenTelemetry ───
@@ -9,10 +11,38 @@ const { trace, SpanStatusCode } = require('@opentelemetry/api');
 const tracer = trace.getTracer('agentshield.mcp', '0.1.0');
 
 /**
- * Invoke an MCP agent over SSE transport.
+ * Detect whether an MCP endpoint uses SSE or Streamable HTTP transport.
  *
- * Connects to the MCP server's SSE endpoint, lists tools, and either
+ * Convention:
+ *   - URLs ending in /sse or /mcp/sse  → SSE transport (legacy)
+ *   - Everything else (e.g. /mcp)      → Streamable HTTP transport (modern)
+ */
+function isSSEEndpoint(url) {
+    return /\/sse\b/.test(url);
+}
+
+/**
+ * Create the appropriate MCP transport for a given endpoint URL.
+ */
+function createTransport(endpointUrl) {
+    const url = new URL(endpointUrl);
+    if (isSSEEndpoint(endpointUrl)) {
+        logger.debug(`Using SSE transport for ${endpointUrl}`);
+        return new SSEClientTransport(url);
+    }
+    logger.debug(`Using Streamable HTTP transport for ${endpointUrl}`);
+    return new StreamableHTTPClientTransport(url);
+}
+
+/**
+ * Invoke an MCP agent over SSE or Streamable HTTP transport.
+ *
+ * Connects to the MCP server, lists tools, and either
  * calls the specified tool or returns the tool list.
+ *
+ * Transport is auto-detected from the endpoint URL:
+ *   - /sse endpoints → SSE transport
+ *   - all others     → Streamable HTTP transport
  *
  * Input formats accepted:
  *   { tool: "toolName", arguments: { ... } }  → calls that tool
@@ -23,10 +53,11 @@ async function invokeMcpAgent(endpointUrl, body) {
     return tracer.startActiveSpan('agentshield.mcp.invoke', {
         attributes: {
             'agentshield.mcp.endpoint': endpointUrl,
+            'agentshield.mcp.transport': isSSEEndpoint(endpointUrl) ? 'sse' : 'streamable-http',
         },
     }, async (span) => {
         const client = new Client({ name: 'agentshield-gateway', version: '1.0.0' });
-        const transport = new SSEClientTransport(new URL(endpointUrl));
+        const transport = createTransport(endpointUrl);
 
         try {
             // Connect and initialize the MCP session
@@ -168,12 +199,12 @@ function buildArgsFromPrompt(tool, prompt) {
 }
 
 /**
- * Quick health check for an MCP SSE endpoint.
+ * Quick health check for an MCP endpoint (SSE or Streamable HTTP).
  * Connects, pings, and disconnects. Returns true if reachable.
  */
 async function checkMcpHealth(endpointUrl, timeoutMs = 8000) {
     const client = new Client({ name: 'agentshield-healthcheck', version: '1.0.0' });
-    const transport = new SSEClientTransport(new URL(endpointUrl));
+    const transport = createTransport(endpointUrl);
 
     const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('MCP health check timeout')), timeoutMs)
@@ -190,4 +221,4 @@ async function checkMcpHealth(endpointUrl, timeoutMs = 8000) {
     }
 }
 
-module.exports = { invokeMcpAgent, checkMcpHealth };
+module.exports = { invokeMcpAgent, checkMcpHealth, createTransport, isSSEEndpoint };

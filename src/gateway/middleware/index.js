@@ -72,6 +72,10 @@ function authenticate(req, res, next) {
     if (publicPaths.some(p => req.path.startsWith(p))) {
         return next();
     }
+    // MCP proxy handles its own auth inline
+    if (req.path.startsWith('/mcp/')) {
+        return next();
+    }
 
     tracer.startActiveSpan('agentshield.authenticate', (span) => {
         // Check for API Key authentication first

@@ -89,10 +89,13 @@ class HealthChecker {
         }
 
         try {
-            // Only use MCP SSE health check when the URL itself is an SSE endpoint.
-            // If we derived /health (or the user set an explicit health_check_url),
-            // use simple HTTP GET regardless of agent protocol.
-            const isMcpEndpoint = url.includes('/mcp/sse') || url.includes('/sse');
+            // Use MCP protocol health check when the URL points to an MCP
+            // endpoint — either legacy SSE (/sse, /mcp/sse) or modern
+            // Streamable HTTP (/mcp). The mcp-client module auto-detects
+            // the correct transport. For derived /health URLs or explicit
+            // health_check_urls that don't look like MCP endpoints, fall
+            // through to simple HTTP GET.
+            const isMcpEndpoint = /\/sse\b/.test(url) || /\/mcp\b/.test(url);
 
             if (isMcpEndpoint) {
                 const { checkMcpHealth } = require('../gateway/mcp-client');
