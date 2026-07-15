@@ -543,6 +543,32 @@ function auditLogger(req, res, next) {
             },
         });
 
+        // Skip noisy, non-governance endpoints from audit logging
+        // (metrics/tracing above still record these for observability)
+        const auditPath = req.originalUrl.split('?')[0]; // strip query params
+        const AUDIT_SKIP_PATTERNS = [
+            '/api/v1/settings/',         // Dashboard settings polling (every 60s)
+            '/api/v1/audit',             // Audit reads (would cause infinite loop)
+            '/api/v1/auth/',             // Login, refresh, session management
+            '/api/v1/dashboard',         // Dashboard stats polling
+            '/health',                   // Health checks
+            '/favicon',                  // Static assets
+        ];
+        // Also skip agent list reads (GET only, not mutations)
+        const AUDIT_SKIP_GET_ONLY = [
+            '/api/v1/agents',            // Agent list reads
+        ];
+        const isReadOnly = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
+        const isSkippable = AUDIT_SKIP_PATTERNS.some(p => auditPath.startsWith(p))
+            || (isReadOnly && AUDIT_SKIP_GET_ONLY.some(p => auditPath.startsWith(p)));
+
+        // Only skip non-mutating reads on noisy endpoints
+        // Mutations (POST/PUT/DELETE) on these paths are still logged
+        if (isReadOnly && isSkippable) {
+            span.end();
+            return;
+        }
+
         auditService.log({
             traceId: req.traceId,
             eventType: 'api_request',
