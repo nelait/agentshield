@@ -67,13 +67,14 @@ Register, organize, and manage all your AI agents in a single, vendor-neutral re
 ---
 
 ### Feature 2: Policy Engine
-**Fine-Grained Access Control**
+**Fine-Grained Access Control with OPA/Rego**
 
-Define who can use which agents, when, and how — using declarative policies that enforce in real time.
+Define who can use which agents, when, and how — using declarative policies that enforce in real time. Now with open-standard **OPA/Rego** support for policy-as-code workflows.
 
 - **Role-based**: Allow/deny by user role, email, or department
 - **Resource-scoped**: Target specific agents, tools, or workflows
 - **Default deny**: Secure by default — only explicitly allowed actions pass
+- **OPA/Rego support**: Policies auto-compile to OPA Rego — export, version in Git, and share across tools
 - **Policy Playground**: Test policies against simulated user contexts before deploying
 
 ---
@@ -91,11 +92,13 @@ Apply input/output guardrails to prevent sensitive data leakage, prompt injectio
 ---
 
 ### Feature 4: Compliance Engine
-**Regulatory Compliance, Automated**
+**Regulatory Compliance, Automated — Now with NIST OSCAL**
 
-Validate agent behavior against SOX, HIPAA, GDPR, and PCI-DSS frameworks with automated sampling, real-agent invocation, and dual-layer input/output scanning.
+Validate agent behavior against SOX, HIPAA, GDPR, and PCI-DSS frameworks with automated sampling, real-agent invocation, and dual-layer input/output scanning. Import industry-standard **NIST OSCAL** compliance catalogs and export machine-readable assessment results.
 
 - **Framework-specific tests**: Auto-generated compliance scenarios per framework
+- **OSCAL catalog import**: Upload NIST OSCAL JSON to import 100+ controls per framework
+- **OSCAL assessment export**: Generate OSCAL Assessment Results for auditor-ready reports
 - **Real invocation mode**: Test against live agents with actual payloads
 - **Dual-layer validation**: Scans both inputs and outputs for violations
 - **Custom samples**: Upload your own test cases for industry-specific validation
@@ -103,12 +106,14 @@ Validate agent behavior against SOX, HIPAA, GDPR, and PCI-DSS frameworks with au
 
 **Supported Frameworks:**
 
-| Framework | Focus Areas |
-|-----------|-------------|
-| **SOX** | Financial reporting, ledger modifications, payment processing |
-| **HIPAA** | PHI protection, patient records, medical data handling |
-| **GDPR** | Data erasure, consent management, marketing analytics |
-| **PCI-DSS** | Payment processing, card storage, transaction security |
+| Framework | Focus Areas | OSCAL Import |
+|-----------|-------------|:------------:|
+| **SOX** | Financial reporting, ledger modifications, payment processing | ✅ |
+| **HIPAA** | PHI protection, patient records, medical data handling | ✅ |
+| **GDPR** | Data erasure, consent management, marketing analytics | ✅ |
+| **PCI-DSS** | Payment processing, card storage, transaction security | ✅ |
+| **NIST 800-53** | Federal information security controls | ✅ |
+| **FedRAMP** | Cloud service provider authorization | ✅ |
 
 ---
 
@@ -405,7 +410,7 @@ AI Sure gives your team the confidence to deploy AI at scale — with the contro
 ```html
 <title>AI Sure — AI Agent Governance Firewall | Policy, Compliance, Audit</title>
 <meta name="description" content="AI Sure is the enterprise governance firewall for AI agents. Enforce access policies, ensure SOX/HIPAA/GDPR compliance, and audit every interaction — without changing agent code." />
-<meta name="keywords" content="AI governance, AI agent firewall, MCP proxy, SOX compliance AI, HIPAA AI agents, AI policy engine, agent registry, LLM guardrails, AI audit trail, Model Context Protocol" />
+<meta name="keywords" content="AI governance, AI agent firewall, MCP proxy, SOX compliance AI, HIPAA AI agents, AI policy engine, agent registry, LLM guardrails, AI audit trail, Model Context Protocol, OPA Rego, NIST OSCAL, policy-as-code, compliance-as-code" />
 <meta property="og:title" content="AI Sure — Govern Your AI Agents. Comply with Confidence." />
 <meta property="og:description" content="Enterprise governance firewall for AI agents. Policy enforcement, compliance validation, and immutable audit trails for REST, MCP, A2A, and gRPC agents." />
 <meta property="og:type" content="website" />

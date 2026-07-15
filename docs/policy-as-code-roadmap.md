@@ -1,125 +1,87 @@
 # AI Sure — Policy-as-Code & Open Standards Roadmap
 
-> **Version**: 1.0  
+> **Version**: 2.0 (Updated)  
 > **Date**: July 2026  
-> **Audience**: Engineering, Product, Compliance Teams
+> **Audience**: Engineering, Product, Compliance Teams  
+> **Status**: Phase 1 ✅ IMPLEMENTED | Phase 2 ✅ IMPLEMENTED | Phase 3 📋 Planned
 
 ---
 
 ## Executive Summary
 
-AI Sure currently uses a **proprietary format** for access policies, compliance rules, and guardrails. While functional, this creates vendor lock-in and limits interoperability with enterprise compliance toolchains.
+AI Sure has adopted **open standards** for policy enforcement and compliance validation, replacing proprietary formats with industry-standard tooling. This enables enterprises to import existing compliance catalogs, author policies as code, and generate machine-readable audit artifacts.
 
-This document outlines a phased roadmap to adopt **open standards** — enabling enterprises to import their existing compliance catalogs, policy definitions, and guardrail specifications in industry-standard formats.
+| Phase | Standard | Status | Release |
+|-------|----------|--------|---------|
+| **Phase 1** | OPA / Rego | ✅ Implemented | July 2026 |
+| **Phase 2** | NIST OSCAL | ✅ Implemented | July 2026 |
+| **Phase 3** | YAML Guardrails | 📋 Planned | TBD |
 
 ---
 
-## 1. Current State Assessment
+## 1. Current State (Post Phase 1 + Phase 2)
 
 ### What We Have Today
 
-| Component | Current Format | Storage | How It Works |
-|-----------|---------------|---------|--------------|
-| **Access Policies** | Custom JSON (`rules_json`) | PostgreSQL `policies` table | ABAC-style: subjects (role, email, dept) × resources (agent, workflow) → allow/deny |
-| **Compliance Rules** | Hardcoded JS objects | `compliance/service.js` + DB fallback (`compliance_rules` table) | 5 rules per framework (SOX, HIPAA, GDPR, PCI-DSS) with id, name, description, severity |
-| **Compliance Checks** | JavaScript logic | `ComplianceService.runComplianceCheck()` | Regex-based PII detection + rule evaluation + optional live agent invocation |
+| Component | Format | Storage | How It Works |
+|-----------|--------|---------|--------------|
+| **Access Policies** | Custom JSON + OPA Rego (dual-mode) | PostgreSQL `policies` table + `.rego` files | ABAC-style rules with optional OPA/Rego compilation and WASM evaluation |
+| **Compliance Rules** | Built-in JS + OSCAL catalog imports | `compliance_rules` table + `oscal_catalogs` table | 5 built-in rules per framework + unlimited OSCAL-imported controls |
+| **Compliance Checks** | JavaScript logic + OSCAL export | `ComplianceService.runComplianceCheck()` | Regex-based PII detection + rule evaluation + OSCAL Assessment Result export |
 | **Guardrails** | Regex patterns | PostgreSQL `guardrail_rules` table | Input/output regex matching for PII, SSN, credit cards, custom patterns |
 
-### Example: Current Policy Format (Proprietary)
-
-```json
-{
-  "name": "Deny Viewer Access to Finance Agents",
-  "policy_type": "access_control",
-  "rules_json": {
-    "effect": "deny",
-    "subjects": [
-      { "field": "role", "operator": "equals", "value": "viewer" }
-    ],
-    "resources": [
-      { "field": "slug", "operator": "equals", "value": "finance-agent" }
-    ]
-  }
-}
-```
-
-### Example: Current Compliance Rule (Proprietary)
-
-```javascript
-{
-  id: 'sox-1',
-  name: 'Financial Data Integrity',
-  description: 'Ensure agent output does not fabricate or alter financial figures',
-  category: 'data_integrity',
-  severity: 'critical'
-}
-```
-
-### Limitations
-
-- **No import/export**: Enterprises can't bring their existing compliance catalogs
-- **No policy versioning**: No Git-friendly format for policy-as-code workflows
-- **No interoperability**: Can't share policies between AI Sure and other governance tools (OPA, HashiCorp Sentinel, etc.)
-- **Hardcoded validation**: Compliance check logic is JavaScript, not declarative rules
-- **No attestation**: No standard way to prove compliance to auditors beyond our own reports
-
 ---
 
-## 2. Open Standards Landscape
+## 2. Phase 1: OPA/Rego for Access Policies ✅ IMPLEMENTED
 
-### Policy-as-Code Standards
+### Implementation Summary
 
-| Standard | Maintained By | Format | Best For | Maturity |
-|----------|--------------|--------|----------|----------|
-| **OPA / Rego** | Styra / CNCF | `.rego` files | Authorization, access control | 🟢 Production-ready |
-| **Cedar** | AWS | Cedar language | Fine-grained permissions | 🟡 Growing adoption |
-| **HashiCorp Sentinel** | HashiCorp | Sentinel language | Infrastructure policies | 🟢 Production (proprietary) |
-| **XACML** | OASIS | XML/JSON | Enterprise ABAC | 🟢 Mature (complex) |
+OPA (Open Policy Agent) Rego has been integrated as a **dual-mode policy engine** alongside the existing dashboard-configured JSON policies. Policies authored in the dashboard UI are compiled to Rego and can be evaluated via OPA's WASM runtime.
 
-### Compliance Framework Standards
+### What Was Delivered
 
-| Standard | Maintained By | Format | Best For | Maturity |
-|----------|--------------|--------|----------|----------|
-| **OSCAL** | NIST | JSON / XML / YAML | Compliance catalogs (SOX, HIPAA, FedRAMP) | 🟡 Growing (US Gov) |
-| **CIS Benchmarks** | CIS | XCCDF / OVAL | Infrastructure hardening | 🟢 Mature |
-| **STIX/TAXII** | OASIS | JSON | Threat intelligence sharing | 🟢 Mature |
-| **OpenControl** | GovReady | YAML | Compliance-as-code for ATO | 🟡 Niche |
+| Component | File | Description |
+|-----------|------|-------------|
+| **Rego Evaluator** | `src/policies/rego-evaluator.js` | OPA WASM-based Rego policy evaluation engine |
+| **Policy Service** | `src/policies/service.js` | Updated with dual-mode evaluation (JSON + Rego) |
+| **Rego Export API** | `GET /policies/:id/rego` | Export any policy as a `.rego` file |
+| **Dashboard Editor** | `Compliance.jsx` (Rules tab) | Rego code editor with syntax highlighting |
+| **Docker Integration** | `Dockerfile` | OPA binary included in container image |
 
-### AI-Specific Standards
+### Dual-Mode Evaluation
 
-| Standard | Maintained By | Format | Best For | Maturity |
-|----------|--------------|--------|----------|----------|
-| **NIST AI RMF** | NIST | Framework doc | AI risk management | 🟡 Framework only |
-| **EU AI Act** | European Commission | Legal text | AI classification & requirements | 🟡 Being codified |
-| **NeMo Guardrails** | NVIDIA | YAML (Colang) | AI guardrail definitions | 🟡 Emerging |
-| **MLCommons AI Safety** | MLCommons | Benchmark suite | AI safety evaluation | 🔴 Early |
+```
+┌─────────────────────────────────────────────────┐
+│  AI Sure Policy Evaluation (Dual-Mode)           │
+│                                                   │
+│  Input: request context (user, agent, workflow)   │
+│                                                   │
+│  ┌─────────────┐  ┌──────────────┐               │
+│  │ Dashboard    │  │ OPA/Rego     │               │
+│  │ Policies     │  │ Compiled     │               │
+│  │ (JSON rules) │  │ (.rego WASM) │               │
+│  └──────┬──────┘  └──────┬───────┘               │
+│         │                │                        │
+│         ▼                ▼                        │
+│  ┌────────────────────────────┐                   │
+│  │  Unified Policy Evaluator  │                   │
+│  │  (merge results, deny wins)│                   │
+│  └────────────┬───────────────┘                   │
+│               │                                   │
+│               ▼                                   │
+│  Decision: allow / deny + reason                  │
+└─────────────────────────────────────────────────┘
+```
 
----
+### API Endpoints (Phase 1)
 
-## 3. Recommended Adoption Roadmap
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/policies/:id/rego` | Export policy as Rego format |
 
-### Phase 1: OPA/Rego for Access Policies (Highest Impact)
-
-**Why OPA?**
-- CNCF graduated project — industry standard for policy-as-code
-- Used by Kubernetes, Envoy, Terraform, Kafka, and hundreds of enterprises
-- Declarative language (Rego) that's auditable and versionable
-- Supports policy bundles — download from Git, S3, or HTTP
-- Built-in testing framework
-
-**What Changes**
-
-| Before (Current) | After (OPA) |
-|-------------------|-------------|
-| Custom `rules_json` in PostgreSQL | `.rego` files in Git + OPA bundle server |
-| `PolicyService._evaluatePolicy()` in JS | OPA REST API: `POST /v1/data/aisure/authz` |
-| Dashboard-only policy management | Dashboard + Git-based policy-as-code |
-| No policy testing | `opa test` CLI + policy unit tests |
-
-**Example: Same Policy in Rego**
+### Rego Example
 
 ```rego
-# policies/access_control.rego
 package aisure.authz
 
 import rego.v1
@@ -136,109 +98,87 @@ deny if {
 allow if {
     input.user.role == "admin"
 }
-
-# Allow if no deny rules matched and at least one allow matched
-allow if {
-    not deny
-    some policy in data.policies
-    policy.effect == "allow"
-    matches_subject(policy, input.user)
-    matches_resource(policy, input.agent)
-}
-
-matches_subject(policy, user) if {
-    every cond in policy.subjects {
-        eval_condition(cond, user)
-    }
-}
-
-matches_resource(policy, agent) if {
-    every cond in policy.resources {
-        eval_condition(cond, agent)
-    }
-}
-
-eval_condition(cond, obj) if {
-    cond.operator == "equals"
-    obj[cond.field] == cond.value
-}
-
-eval_condition(cond, obj) if {
-    cond.operator == "in"
-    obj[cond.field] == cond.value[_]
-}
 ```
 
-**Integration Architecture**
+### Key Design Decisions
 
-```
-┌──────────────────────────────────────────┐
-│  AI Sure Gateway                         │
-│                                          │
-│  1. Build OPA input from request context │
-│  2. POST to OPA sidecar                  │
-│  3. Read decision (allow/deny)           │
-│  4. Audit log the decision               │
-└─────────────┬────────────────────────────┘
-              │
-              ▼
-┌──────────────────────────────────────────┐
-│  OPA Sidecar / Embedded                  │
-│                                          │
-│  Evaluates .rego policies                │
-│  Loads bundles from Git/S3/HTTP          │
-│  Decision: { "allow": true/false }       │
-└──────────────────────────────────────────┘
-              ▲
-              │ Policy bundles
-┌──────────────────────────────────────────┐
-│  Git Repository                          │
-│                                          │
-│  policies/                               │
-│    access_control.rego                   │
-│    compliance_gates.rego                 │
-│    guardrail_rules.rego                  │
-│  policies_test/                          │
-│    access_control_test.rego              │
-│  data.json  (static data)               │
-└──────────────────────────────────────────┘
-```
-
-**Implementation Estimate**: 2-3 weeks
+- **Backward compatible**: All existing JSON policies continue to work without modification
+- **WASM evaluation**: OPA policies are compiled to WASM for in-process evaluation (no sidecar needed)
+- **Audit trail**: All policy decisions are logged regardless of evaluation mode
+- **Dashboard first**: Rego is auto-generated from the visual policy editor — no CLI required
 
 ---
 
-### Phase 2: OSCAL for Compliance Frameworks (Regulatory Ready)
+## 3. Phase 2: OSCAL for Compliance Frameworks ✅ IMPLEMENTED
 
-**Why OSCAL?**
+### Implementation Summary
 
-OSCAL (Open Security Controls Assessment Language) is a NIST standard that provides machine-readable formats for:
-- **Catalogs**: The full set of controls in a framework (e.g., all 300+ NIST 800-53 controls)
-- **Profiles**: A selection of controls for a specific use case (e.g., "SOX-relevant subset")
-- **Component Definitions**: How your system implements each control
-- **Assessment Plans**: How to test compliance
-- **Assessment Results**: The actual findings
+NIST OSCAL (Open Security Controls Assessment Language) has been integrated for **importing compliance catalogs** and **exporting assessment results**. Enterprises can now upload OSCAL-formatted control catalogs (SOX, HIPAA, NIST 800-53, FedRAMP, etc.) and receive machine-readable compliance reports.
 
-NIST already publishes official OSCAL catalogs for NIST 800-53, FedRAMP, and others. Community catalogs exist for SOX, HIPAA, and PCI-DSS.
+### What Was Delivered
 
-**What Changes**
+| Component | File | Description |
+|-----------|------|-------------|
+| **OSCAL Parser** | `src/compliance/oscal-parser.js` | Validates, parses OSCAL catalogs, generates Assessment Results |
+| **DB Migration** | `migrations/015_oscal_catalogs.sql` | `oscal_catalogs` table + provenance columns on `compliance_rules` |
+| **Compliance Service** | `src/compliance/service.js` | 6 new OSCAL methods: import, list, delete, validate, preview, export |
+| **API Routes** | `src/admin/routes.js` | 6 new OSCAL endpoints |
+| **Dashboard UI** | `Compliance.jsx` | Import modal, catalog list, OSCAL badges, export button |
+| **Dashboard API** | `api.js` | 6 new OSCAL API methods |
 
-| Before (Current) | After (OSCAL) |
-|-------------------|---------------|
-| 5 hardcoded rules per framework | Import full OSCAL catalog (100+ controls) |
-| `getFrameworkRules()` returns JS objects | Parse OSCAL JSON catalog → control list |
-| No control mapping | Map AI Sure features → OSCAL control IDs |
-| Proprietary report format | OSCAL Assessment Results (machine-readable) |
+### API Endpoints (Phase 2)
 
-**Example: OSCAL Catalog (SOX Control)**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/compliance/oscal/validate` | Validate OSCAL JSON structure |
+| `POST` | `/compliance/oscal/preview` | Parse catalog without saving (preview groups/controls) |
+| `POST` | `/compliance/oscal/import` | Import catalog → compliance rules |
+| `GET` | `/compliance/oscal/catalogs` | List imported OSCAL catalogs |
+| `DELETE` | `/compliance/oscal/catalogs/:id` | Delete catalog + associated rules (CASCADE) |
+| `GET` | `/compliance/checks/:id/oscal` | Export compliance check as OSCAL Assessment Result |
+
+### OSCAL Import Flow
+
+```
+Enterprise Compliance Team
+    │
+    │  Uploads OSCAL catalog JSON (file or paste)
+    ▼
+┌────────────────────────────────────────┐
+│  AI Sure Dashboard                     │
+│  Compliance → Rules → Import OSCAL     │
+│                                        │
+│  1. Validate OSCAL JSON structure      │
+│  2. Preview: show groups + controls    │
+│  3. User selects groups to import      │
+│  4. Parse controls → compliance_rules  │
+│  5. Store catalog in oscal_catalogs    │
+│  6. Rules appear with "OSCAL" badge    │
+└────────────────────────────────────────┘
+    │
+    │  Run compliance check
+    ▼
+┌────────────────────────────────────────┐
+│  AI Sure Compliance Engine             │
+│                                        │
+│  1. Load built-in + OSCAL rules        │
+│  2. Generate test samples              │
+│  3. Invoke agent (optional)            │
+│  4. Evaluate against all controls      │
+│  5. Export OSCAL Assessment Result     │
+└────────────────────────────────────────┘
+```
+
+### OSCAL Catalog Example (Import)
 
 ```json
 {
   "catalog": {
-    "uuid": "a]f3e-...",
+    "uuid": "a3f3e2c1-sox-ai-catalog-2026",
     "metadata": {
       "title": "SOX Compliance Controls for AI Agents",
-      "version": "1.0.0"
+      "version": "2.0.0",
+      "oscal-version": "1.1.2"
     },
     "groups": [
       {
@@ -249,29 +189,12 @@ NIST already publishes official OSCAL catalogs for NIST 800-53, FedRAMP, and oth
             "id": "SOX-AI-DI-01",
             "title": "Financial Data Integrity",
             "props": [
-              { "name": "severity", "value": "critical" },
-              { "name": "category", "value": "data_integrity" }
+              { "name": "severity", "value": "critical" }
             ],
             "parts": [
               {
                 "name": "statement",
-                "prose": "AI agents processing financial data MUST NOT fabricate, hallucinate, or alter financial figures. All numerical outputs must be traceable to source data."
-              },
-              {
-                "name": "guidance",
-                "prose": "Implement output validation that cross-references agent responses against source documents. Flag any financial figures that cannot be traced to input data."
-              }
-            ],
-            "controls": [
-              {
-                "id": "SOX-AI-DI-01.a",
-                "title": "Output Validation",
-                "parts": [
-                  {
-                    "name": "statement",
-                    "prose": "Agent outputs containing financial figures MUST include source attribution."
-                  }
-                ]
+                "prose": "AI agents MUST NOT fabricate financial figures."
               }
             ]
           }
@@ -282,83 +205,70 @@ NIST already publishes official OSCAL catalogs for NIST 800-53, FedRAMP, and oth
 }
 ```
 
-**Example: OSCAL Assessment Result**
+### OSCAL Assessment Result Example (Export)
 
 ```json
 {
   "assessment-results": {
-    "uuid": "b2c4...",
+    "uuid": "b2c4e5f6-...",
     "metadata": {
-      "title": "AI Sure Compliance Assessment — SOX Q3 2026"
+      "title": "AI Sure Compliance Assessment — SOX Jul 2026",
+      "oscal-version": "1.1.2"
     },
-    "results": [
-      {
-        "uuid": "r1...",
-        "title": "SOX Automated Check — Corp Chatbot",
-        "start": "2026-07-14T10:00:00Z",
-        "end": "2026-07-14T10:05:00Z",
-        "findings": [
-          {
-            "uuid": "f1...",
-            "title": "Financial Data Integrity Check",
-            "target": {
-              "type": "component",
-              "target-id": "corpgcpmcp",
-              "status": { "state": "satisfied" }
-            },
-            "related-observations": ["obs-1"]
+    "results": [{
+      "title": "SOX Automated Check — Corp Chatbot",
+      "start": "2026-07-14T10:00:00Z",
+      "end": "2026-07-14T10:05:00Z",
+      "props": [
+        { "name": "total-rules", "value": "13" },
+        { "name": "passed-rules", "value": "12" },
+        { "name": "failed-rules", "value": "1" }
+      ],
+      "findings": [
+        {
+          "title": "Financial Data Integrity Check",
+          "target": {
+            "type": "objective-id",
+            "target-id": "SOX-AI-DI-01",
+            "status": { "state": "satisfied" }
           }
-        ],
-        "observations": [
-          {
-            "uuid": "obs-1",
-            "description": "Agent correctly referenced source documents for all financial figures. No hallucinated numbers detected.",
-            "methods": ["TEST"],
-            "collected": "2026-07-14T10:03:00Z"
-          }
-        ]
-      }
-    ]
+        }
+      ]
+    }]
   }
 }
 ```
 
-**Upload Flow for Enterprises**
+### Database Schema (Phase 2)
 
-```
-Enterprise Compliance Team
-    │
-    │  Uploads OSCAL catalog JSON
-    ▼
-┌────────────────────────────────────┐
-│  AI Sure Dashboard                 │
-│  Compliance → Import Framework     │
-│                                    │
-│  1. Parse OSCAL catalog            │
-│  2. Extract controls + severity    │
-│  3. Map to AI Sure rule format     │
-│  4. Store in compliance_rules DB   │
-│  5. Ready for automated checks     │
-└────────────────────────────────────┘
-    │
-    │  Run compliance check
-    ▼
-┌────────────────────────────────────┐
-│  AI Sure Compliance Engine         │
-│                                    │
-│  1. Load OSCAL-sourced rules       │
-│  2. Generate test samples          │
-│  3. Invoke agent (optional)        │
-│  4. Evaluate against controls      │
-│  5. Export OSCAL Assessment Result │
-└────────────────────────────────────┘
-```
+| Table | Description |
+|-------|-------------|
+| `oscal_catalogs` | Imported OSCAL catalog metadata + source JSON |
+| `compliance_rules` (updated) | New columns: `oscal_catalog_id`, `oscal_control_id`, `oscal_statement`, `oscal_guidance` |
 
-**Implementation Estimate**: 3-4 weeks
+### Dashboard UI Features
+
+| Feature | Location | Description |
+|---------|----------|-------------|
+| **Import OSCAL** button | Compliance → Rules tab header | Opens import modal |
+| **Import Modal** | Modal overlay | JSON paste/file upload, framework picker, group selector |
+| **OSCAL Badge** | Rules list → Type column | Purple "OSCAL" badge vs blue "Built-in" / green "Custom" |
+| **Imported Catalogs** | Below rules table | Lists all imported catalogs with delete option |
+| **Export OSCAL** button | History → Check detail | Downloads assessment result as OSCAL JSON |
+
+### Key Design Decisions
+
+- **Selective import**: Users pick which control groups to import (full catalogs can be 300+ controls)
+- **Non-destructive**: Imported rules coexist with built-in rules; deleting a catalog cascades to its rules only
+- **OSCAL 1.1.2 compliance**: Parser supports the latest OSCAL spec including nested groups and sub-controls
+- **Keyword-based evaluation**: OSCAL controls are matched using extracted keywords from control statements
+- **Provenance tracking**: Every imported rule links back to its source catalog via `oscal_catalog_id`
 
 ---
 
-### Phase 3: Guardrail Definition Standard (Forward-Looking)
+## 4. Phase 3: Guardrail Definition Standard (Planned)
+
+**Status**: 📋 Planned
 
 **Current Landscape**: There is no widely-adopted open standard for AI guardrails yet. The closest options:
 
@@ -395,20 +305,6 @@ guardrail:
       pattern: '\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b'
       action: block
       message: "Credit card number detected — request blocked"
-    
-    - id: pii-email
-      name: Email Address
-      severity: medium
-      pattern: '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-      action: flag
-      message: "Email address detected — flagged for review"
-    
-    - id: prompt-injection
-      name: Prompt Injection Attempt
-      severity: critical
-      pattern: '(?i)(ignore previous|ignore all|disregard|forget your|system prompt)'
-      action: block
-      message: "Potential prompt injection detected"
 
   exceptions:
     - agent: internal-hr-bot
@@ -420,76 +316,34 @@ guardrail:
 
 ---
 
-## 4. Migration Strategy
-
-### Backward Compatibility
-
-All phases maintain backward compatibility — existing dashboard-configured policies continue to work.
-
-```
-┌─────────────────────────────────────────────────┐
-│  AI Sure Policy Evaluation                       │
-│                                                   │
-│  Input: request context                           │
-│                                                   │
-│  ┌─────────────┐  ┌──────────────┐               │
-│  │ Dashboard    │  │ Policy-as-   │               │
-│  │ Policies     │  │ Code (OPA)   │               │
-│  │ (DB-stored)  │  │ (.rego files)│               │
-│  └──────┬──────┘  └──────┬───────┘               │
-│         │                │                        │
-│         ▼                ▼                        │
-│  ┌────────────────────────────┐                   │
-│  │  Unified Policy Evaluator  │                   │
-│  │  (merge results)           │                   │
-│  └────────────┬───────────────┘                   │
-│               │                                   │
-│               ▼                                   │
-│  Decision: allow / deny + reason                  │
-└─────────────────────────────────────────────────┘
-```
-
-### Dual-Mode Operation
-
-During migration, the system supports both modes:
-
-| Mode | Source | Evaluated By | For Who |
-|------|--------|-------------|---------|
-| **Dashboard Mode** (current) | PostgreSQL `policies` table | `PolicyService.evaluate()` | Teams using the UI |
-| **Code Mode** (new) | `.rego` files in Git/S3 | OPA sidecar | Teams with policy-as-code workflows |
-| **Hybrid** | Both | Merged (deny wins) | Transition period |
-
----
-
 ## 5. Implementation Priority Matrix
 
-| Phase | Standard | Impact | Effort | Priority |
-|-------|----------|--------|--------|----------|
-| **Phase 1** | OPA/Rego (policies) | 🔴 High — enables policy-as-code | 2-3 weeks | **P0** |
-| **Phase 2** | OSCAL (compliance) | 🔴 High — regulatory credibility | 3-4 weeks | **P0** |
-| **Phase 3** | YAML guardrails | 🟡 Medium — versionable guardrails | 2 weeks | **P1** |
-| **Phase 4** | OSCAL export (reports) | 🟡 Medium — auditor interop | 2 weeks | **P1** |
-| **Phase 5** | Cedar support (alt.) | 🟢 Low — AWS ecosystem only | 2 weeks | **P2** |
+| Phase | Standard | Impact | Status |
+|-------|----------|--------|--------|
+| **Phase 1** | OPA/Rego (policies) | 🔴 High — enables policy-as-code | ✅ Implemented |
+| **Phase 2** | OSCAL (compliance) | 🔴 High — regulatory credibility | ✅ Implemented |
+| **Phase 3** | YAML guardrails | 🟡 Medium — versionable guardrails | 📋 Planned |
+| **Phase 4** | Cedar support (alt.) | 🟢 Low — AWS ecosystem only | 📋 Planned |
 
 ---
 
-## 6. Key Benefits of Adoption
+## 6. Key Benefits Achieved
 
 ### For Enterprises
 
-| Benefit | Without Standards | With Standards |
-|---------|-------------------|----------------|
-| **Onboarding** | Manually recreate all policies in dashboard | Import existing OPA policies from Git |
-| **Compliance** | Trust AI Sure's proprietary rules | Import NIST/OSCAL catalogs — auditor-recognized |
-| **Audit** | Proprietary reports | OSCAL Assessment Results — machine-readable, shareable |
-| **CI/CD** | Dashboard-only changes | `git push` → policy deployed → tests pass |
-| **Multi-tool** | Policies locked in AI Sure | Same .rego files used across Kubernetes, Envoy, AI Sure |
+| Benefit | Before (Pre-Phase 1/2) | After (Current) |
+|---------|------------------------|------------------|
+| **Policy Authoring** | Dashboard-only JSON rules | Dashboard + OPA Rego + Git-based policy-as-code |
+| **Compliance Catalogs** | 5 hardcoded rules per framework | Import full OSCAL catalogs (100+ controls per framework) |
+| **Audit Reports** | Proprietary report format | OSCAL Assessment Results (machine-readable, shareable) |
+| **Standards Compliance** | Proprietary formats only | OPA (CNCF), OSCAL (NIST) — auditor-recognized |
+| **Interoperability** | Policies locked in AI Sure | Same .rego files usable across Kubernetes, Envoy, Terraform |
 
 ### For AI Sure (Product)
 
 | Benefit | Impact |
 |---------|--------|
-| **Enterprise sales** | "We support OPA and OSCAL" removes a common objection |
+| **Enterprise sales** | "We support OPA and OSCAL" removes common objections |
 | **Compliance credibility** | NIST OSCAL adoption signals regulatory seriousness |
 | **Ecosystem** | Integrates with existing enterprise governance toolchains |
 | **Differentiation** | No competitor in the AI governance space supports OSCAL today |
