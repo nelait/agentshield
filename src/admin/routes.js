@@ -249,6 +249,61 @@ router.get('/compliance/configs/:id/checks', async (req, res, next) => {
 });
 
 // ============================================
+// OSCAL CATALOG ROUTES
+// ============================================
+
+// Validate an OSCAL JSON structure
+router.post('/compliance/oscal/validate', requireRole('editor'), async (req, res, next) => {
+    try {
+        const result = complianceService.validateOscal(req.body);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Preview an OSCAL catalog (parse without saving)
+router.post('/compliance/oscal/preview', requireRole('editor'), async (req, res, next) => {
+    try {
+        const result = complianceService.previewOscalCatalog(req.body);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Import an OSCAL catalog
+router.post('/compliance/oscal/import', requireRole('admin'), async (req, res, next) => {
+    try {
+        const { catalog, framework, selectedGroups } = req.body;
+        if (!catalog) return res.status(400).json({ success: false, error: 'catalog JSON is required' });
+        if (!framework) return res.status(400).json({ success: false, error: 'framework is required' });
+        const result = await complianceService.importOscalCatalog(catalog, framework, selectedGroups || [], req.user?.id);
+        res.status(201).json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// List imported OSCAL catalogs
+router.get('/compliance/oscal/catalogs', async (req, res, next) => {
+    try {
+        const catalogs = await complianceService.listOscalCatalogs();
+        res.json({ success: true, data: catalogs });
+    } catch (err) { next(err); }
+});
+
+// Delete an OSCAL catalog and its imported rules
+router.delete('/compliance/oscal/catalogs/:id', requireRole('admin'), async (req, res, next) => {
+    try {
+        await complianceService.deleteOscalCatalog(req.params.id);
+        res.json({ success: true, message: 'Catalog and associated rules deleted' });
+    } catch (err) { next(err); }
+});
+
+// Export a compliance check as OSCAL Assessment Result
+router.get('/compliance/checks/:id/oscal', async (req, res, next) => {
+    try {
+        const result = await complianceService.exportOscalAssessmentResult(req.params.id);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// ============================================
 // BUDGET / COST ROUTES
 // ============================================
 router.post('/budgets', requireRole('admin'), async (req, res, next) => {

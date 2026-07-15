@@ -3,6 +3,7 @@ const axios = require('axios');
 const db = require('../db');
 const config = require('../config');
 const logger = require('../config/logger');
+const oscalParser = require('./oscal-parser');
 
 class ComplianceService {
     /**
@@ -207,6 +208,8 @@ class ComplianceService {
                     category: r.category,
                     severity: r.severity,
                     evaluationConfig: r.evaluation_config || {},
+                    source: r.oscal_catalog_id ? 'oscal' : 'builtin',
+                    oscalControlId: r.oscal_control_id || null,
                 }));
             }
         } catch (err) {
@@ -706,6 +709,172 @@ class ComplianceService {
         const { rows } = await db.query('SELECT * FROM compliance_configs WHERE id = $1', [configId]);
         if (rows.length === 0) throw new Error('Config not found');
         return rows[0];
+    }
+
+    // ============================================
+    // OSCAL CATALOG OPERATIONS
+    // ============================================
+
+    /**
+     * Import an OSCAL catalog JSON and create compliance_rules entries
+     * @param {Object} oscalJson — OSCAL catalog JSON
+     * @param {string} framework — sox, hipaa, gdpr, pci_dss, custom, etc.
+     * @param {string[]} selectedGroupIds — which groups to import (empty = all)
+     * @param {string} userId — importing user
+     */
+    async importOscalCatalog(oscalJson, framework, selectedGroupIds = [], userId = null) {
+        // Validate
+        const validation = oscalParser.validate(oscalJson);
+        if (!validation.valid) {
+            const err = new Error(`OSCAL validation failed: ${validation.errors.join('; ')}`);
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Parse
+        const parsed = oscalParser.parseCatalog(oscalJson);
+
+        // Filter controls by selected groups
+        let controlsToImport = parsed.controls;
+        if (selectedGroupIds && selectedGroupIds.length > 0) {
+            controlsToImport = parsed.controls.filter(c => 
+                selectedGroupIds.includes(c.groupId)
+            );
+        }
+
+        if (controlsToImport.length === 0) {
+            const err = new Error('No controls found to import (check selected groups)');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Insert catalog record
+        const { rows: [catalog] } = await db.query(
+            `INSERT INTO oscal_catalogs (catalog_uuid, title, version, framework, source_json, total_controls, imported_controls, imported_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [
+                parsed.catalogId, parsed.title, parsed.version, framework,
+                JSON.stringify(oscalJson), parsed.controls.length, controlsToImport.length,
+                userId,
+            ]
+        );
+
+        // Insert controls as compliance_rules
+        let imported = 0;
+        for (const control of controlsToImport) {
+            const rule = oscalParser.controlToRule(control, framework, catalog.id);
+            try {
+                await db.query(
+                    `INSERT INTO compliance_rules 
+                     (framework, rule_id, name, description, category, severity, is_builtin, is_enabled,
+                      oscal_catalog_id, oscal_control_id, oscal_statement, oscal_guidance, evaluation_config)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                     ON CONFLICT (rule_id) DO UPDATE SET
+                       name = EXCLUDED.name, description = EXCLUDED.description,
+                       oscal_statement = EXCLUDED.oscal_statement, oscal_guidance = EXCLUDED.oscal_guidance`,
+                    [
+                        rule.framework, rule.rule_id, rule.name, rule.description,
+                        rule.category, rule.severity, false, true,
+                        rule.oscal_catalog_id, rule.oscal_control_id,
+                        rule.oscal_statement, rule.oscal_guidance, rule.evaluation_config,
+                    ]
+                );
+                imported++;
+            } catch (err) {
+                logger.warn(`Failed to import OSCAL control ${control.id}: ${err.message}`);
+            }
+        }
+
+        logger.info(`OSCAL catalog imported: "${parsed.title}" — ${imported}/${controlsToImport.length} controls`);
+
+        return {
+            catalogId: catalog.id,
+            title: parsed.title,
+            version: parsed.version,
+            framework,
+            totalControls: parsed.controls.length,
+            importedControls: imported,
+            groups: parsed.groups,
+        };
+    }
+
+    /**
+     * List imported OSCAL catalogs
+     */
+    async listOscalCatalogs() {
+        const { rows } = await db.query(
+            'SELECT id, catalog_uuid, title, version, framework, total_controls, imported_controls, created_at FROM oscal_catalogs ORDER BY created_at DESC'
+        );
+        return rows;
+    }
+
+    /**
+     * Delete an OSCAL catalog and its imported rules (CASCADE)
+     */
+    async deleteOscalCatalog(catalogId) {
+        // The ON DELETE CASCADE on compliance_rules.oscal_catalog_id handles rule deletion
+        const { rowCount } = await db.query('DELETE FROM oscal_catalogs WHERE id = $1', [catalogId]);
+        if (rowCount === 0) {
+            const err = new Error('Catalog not found');
+            err.statusCode = 404;
+            throw err;
+        }
+        logger.info(`OSCAL catalog deleted: ${catalogId}`);
+    }
+
+    /**
+     * Validate an OSCAL JSON structure
+     */
+    validateOscal(oscalJson) {
+        return oscalParser.validate(oscalJson);
+    }
+
+    /**
+     * Preview an OSCAL catalog before importing (parse without saving)
+     */
+    previewOscalCatalog(oscalJson) {
+        const validation = oscalParser.validate(oscalJson);
+        if (!validation.valid) {
+            return { valid: false, errors: validation.errors };
+        }
+        const parsed = oscalParser.parseCatalog(oscalJson);
+        return {
+            valid: true,
+            catalogId: parsed.catalogId,
+            title: parsed.title,
+            version: parsed.version,
+            groups: parsed.groups,
+            totalControls: parsed.controls.length,
+        };
+    }
+
+    /**
+     * Export a compliance check as an OSCAL Assessment Results document
+     */
+    async exportOscalAssessmentResult(checkId) {
+        const { rows } = await db.query('SELECT * FROM compliance_checks WHERE id = $1', [checkId]);
+        if (rows.length === 0) {
+            const err = new Error('Check not found');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        const check = rows[0];
+        const cfg = await this.getConfig(check.config_id);
+
+        // Build check result object
+        const checkResult = {
+            framework: cfg.framework,
+            status: check.status,
+            totalRules: check.total_rules,
+            passedRules: check.passed_rules,
+            failedRules: check.failed_rules,
+            results: check.results || [],
+            startedAt: check.started_at,
+            completedAt: check.completed_at,
+        };
+
+        return oscalParser.generateAssessmentResult(checkResult, { title: cfg.name }, { systemName: cfg.name });
     }
 }
 
