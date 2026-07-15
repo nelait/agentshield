@@ -99,6 +99,48 @@ router.delete('/policies/:id', requireRole('admin'), async (req, res, next) => {
 });
 
 // ============================================
+// REGO / OPA POLICY ROUTES
+// ============================================
+
+// Check if OPA binary is available for Rego compilation
+router.get('/policies/rego/status', async (req, res, next) => {
+    try {
+        const available = await policyService.isRegoAvailable();
+        res.json({ success: true, data: { opaAvailable: available } });
+    } catch (err) { next(err); }
+});
+
+// Validate Rego syntax without saving
+router.post('/policies/rego/validate', requireRole('editor'), async (req, res, next) => {
+    try {
+        const { source } = req.body;
+        if (!source) return res.status(400).json({ success: false, error: 'source is required' });
+        const result = await policyService.validateRego(source);
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Import a .rego file as a new policy
+router.post('/policies/rego/import', requireRole('editor'), async (req, res, next) => {
+    try {
+        const { name, source, priority } = req.body;
+        if (!name || !source) {
+            return res.status(400).json({ success: false, error: 'name and source are required' });
+        }
+        const policy = await policyService.importRego(name, source, priority || 100, req.user?.id);
+        res.status(201).json({ success: true, data: policy });
+    } catch (err) { next(err); }
+});
+
+// Export Rego source for a policy
+router.get('/policies/:id/rego', async (req, res, next) => {
+    try {
+        const data = await policyService.getRegoSource(req.params.id);
+        res.json({ success: true, data });
+    } catch (err) { next(err); }
+});
+
+// ============================================
 // WORKFLOW ROUTES
 // ============================================
 router.post('/workflows', requireRole('editor'), async (req, res, next) => {

@@ -113,6 +113,14 @@ async function start() {
             logger.warn('Database is not reachable. Server will start but DB features will fail.');
         } else {
             logger.info('Database connected successfully');
+
+            // Run pending migrations
+            try {
+                const { migrate } = require('./db/migrate');
+                await migrate();
+            } catch (migErr) {
+                logger.error('Migration failed (non-fatal):', migErr.message);
+            }
         }
 
         // Start the HTTP server

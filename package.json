@@ -23,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@open-policy-agent/opa-wasm": "^1.10.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.77.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.219.0",
