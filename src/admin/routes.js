@@ -1245,6 +1245,36 @@ router.get('/guardrails/stats', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// ── YAML Guardrail Import/Export (Phase 3) ──
+
+// Export profile as YAML
+router.get('/guardrails/profiles/:id/yaml', async (req, res, next) => {
+    try {
+        const yamlString = await guardrailsService.exportProfileYaml(req.params.id);
+        res.json({ success: true, data: { yaml: yamlString } });
+    } catch (err) { next(err); }
+});
+
+// Import profile from YAML
+router.post('/guardrails/import-yaml', requireRole('editor'), async (req, res, next) => {
+    try {
+        const { yaml: yamlString } = req.body;
+        if (!yamlString) return res.status(400).json({ success: false, error: 'YAML string is required in the "yaml" field' });
+        const result = await guardrailsService.importProfileYaml(yamlString, req.user?.id);
+        res.status(201).json({ success: true, data: result });
+    } catch (err) { next(err); }
+});
+
+// Preview/validate YAML without saving
+router.post('/guardrails/preview-yaml', async (req, res, next) => {
+    try {
+        const { yaml: yamlString } = req.body;
+        if (!yamlString) return res.status(400).json({ success: false, error: 'YAML string is required in the "yaml" field' });
+        const preview = await guardrailsService.previewYaml(yamlString);
+        res.json({ success: true, data: preview });
+    } catch (err) { next(err); }
+});
+
 // ============================================
 // API KEY MANAGEMENT ROUTES
 // ============================================

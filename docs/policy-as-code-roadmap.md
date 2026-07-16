@@ -266,20 +266,22 @@ Enterprise Compliance Team
 
 ---
 
-## 4. Phase 3: Guardrail Definition Standard (Planned)
+## 4. Phase 3: YAML Guardrail Definition Standard (Implemented)
 
-**Status**: 📋 Planned
+**Status**: ✅ Implemented
+
+**Approach Chosen**: Custom YAML schema — a human-readable, Git-friendly format with the flexibility to adopt an emerging standard when one matures.
 
 **Current Landscape**: There is no widely-adopted open standard for AI guardrails yet. The closest options:
 
 | Option | Format | Pros | Cons |
 |--------|--------|------|------|
 | **NeMo Guardrails (Colang)** | YAML + Colang | NVIDIA backing, active development | Proprietary language, NVIDIA ecosystem |
-| **Custom YAML schema** | YAML | Simple, human-readable, versionable | Not a standard — would be AI Sure-specific |
+| **Custom YAML schema** ✅ | YAML | Simple, human-readable, versionable | Not a standard — would be AI Sure-specific |
 | **OPA/Rego extension** | `.rego` | Reuses Phase 1 infrastructure | Rego not ideal for content filtering |
 | **OWASP LLM Top 10** | Checklist | Well-known, comprehensive | Not machine-readable |
 
-**Recommended Approach**: Define a **YAML-based guardrail format** that is human-readable and Git-friendly, with the flexibility to adopt an emerging standard when one matures.
+### Implementation
 
 **Example: Guardrail YAML Format**
 
@@ -312,7 +314,30 @@ guardrail:
       reason: "HR bot needs to process employee emails"
 ```
 
-**Implementation Estimate**: 2 weeks
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/guardrails/profiles/:id/yaml` | Export a guardrail profile as YAML |
+| `POST` | `/api/v1/guardrails/import-yaml` | Import a profile from a YAML string |
+| `POST` | `/api/v1/guardrails/preview-yaml` | Validate/preview YAML without saving |
+
+### Files Added/Modified
+
+| File | Change |
+|------|--------|
+| `src/guardrails/yaml-parser.js` | **NEW** — YAML schema validator, parser, and generator |
+| `src/guardrails/service.js` | Added `exportProfileYaml()`, `importProfileYaml()`, `previewYaml()` |
+| `src/admin/routes.js` | Added 3 YAML endpoints |
+
+### Key Design Decisions
+
+- **Bidirectional fidelity**: Export a profile → import the YAML → identical rules created (round-trip)
+- **Type aliases**: YAML accepts `pii-shield` or `pii_shield` for readability
+- **Config flattening**: DB JSONB config is flattened into top-level YAML fields for human readability
+- **Schema validation**: Parser validates types, severities, scopes, and required fields before import
+- **Name conflict detection**: Preview endpoint warns if a profile with the same name already exists
+- **Exception support**: YAML can declare per-agent rule skip lists with reason annotations
 
 ---
 
@@ -322,7 +347,7 @@ guardrail:
 |-------|----------|--------|--------|
 | **Phase 1** | OPA/Rego (policies) | 🔴 High — enables policy-as-code | ✅ Implemented |
 | **Phase 2** | OSCAL (compliance) | 🔴 High — regulatory credibility | ✅ Implemented |
-| **Phase 3** | YAML guardrails | 🟡 Medium — versionable guardrails | 📋 Planned |
+| **Phase 3** | YAML guardrails | 🟡 Medium — versionable guardrails | ✅ Implemented |
 | **Phase 4** | Cedar support (alt.) | 🟢 Low — AWS ecosystem only | 📋 Planned |
 
 ---
@@ -331,11 +356,12 @@ guardrail:
 
 ### For Enterprises
 
-| Benefit | Before (Pre-Phase 1/2) | After (Current) |
+| Benefit | Before (Pre-Phase 1/2/3) | After (Current) |
 |---------|------------------------|------------------|
 | **Policy Authoring** | Dashboard-only JSON rules | Dashboard + OPA Rego + Git-based policy-as-code |
 | **Compliance Catalogs** | 5 hardcoded rules per framework | Import full OSCAL catalogs (100+ controls per framework) |
 | **Audit Reports** | Proprietary report format | OSCAL Assessment Results (machine-readable, shareable) |
+| **Guardrail Management** | Dashboard-only, manual configuration | YAML import/export — Git-versionable, team-shareable |
 | **Standards Compliance** | Proprietary formats only | OPA (CNCF), OSCAL (NIST) — auditor-recognized |
 | **Interoperability** | Policies locked in AI Sure | Same .rego files usable across Kubernetes, Envoy, Terraform |
 

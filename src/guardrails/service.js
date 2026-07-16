@@ -1,6 +1,7 @@
 const db = require('../db');
 const logger = require('../config/logger');
 const { v4: uuidv4 } = require('uuid');
+const yamlParser = require('./yaml-parser');
 
 // ============================================
 // Guardrails Service
@@ -702,6 +703,137 @@ class GuardrailsService {
 
     _isUUID(str) {
         return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    }
+
+    // ─── YAML Import / Export (Phase 3) ──────────
+
+    /**
+     * Export a guardrail profile as a YAML string.
+     * Fetches profile + rules + assigned agents and generates YAML.
+     */
+    async exportProfileYaml(profileId) {
+        const profile = await this.getProfile(profileId);
+        const rules = profile.rules || [];
+        const agents = profile.assigned_agents || [];
+
+        const yamlString = yamlParser.generateYaml(profile, rules, agents);
+        logger.info(`Guardrail profile exported as YAML: ${profile.name} (${rules.length} rules)`);
+        return yamlString;
+    }
+
+    /**
+     * Import a guardrail profile from a YAML string.
+     * Creates profile + rules. Returns the created profile with rules.
+     */
+    async importProfileYaml(yamlString, userId = null) {
+        // Parse and validate
+        const { profile: parsedProfile, rules: parsedRules, exceptions } = yamlParser.parseGuardrail(yamlString);
+
+        // Check for duplicate name
+        const existing = await db.query(
+            'SELECT id FROM guardrail_profiles WHERE LOWER(name) = LOWER($1)',
+            [parsedProfile.name]
+        );
+        if (existing.rows.length > 0) {
+            const err = new Error(`A guardrail profile named "${parsedProfile.name}" already exists. Rename it in the YAML or delete the existing profile first.`);
+            err.statusCode = 409;
+            err.isOperational = true;
+            throw err;
+        }
+
+        // Create the profile
+        const profileResult = await db.query(
+            `INSERT INTO guardrail_profiles (name, description, mode, created_by)
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [parsedProfile.name, parsedProfile.description, parsedProfile.mode, userId]
+        );
+        const createdProfile = profileResult.rows[0];
+
+        // Create the rules
+        const createdRules = [];
+        for (const rule of parsedRules) {
+            const result = await db.query(
+                `INSERT INTO guardrail_rules (profile_id, name, description, rule_type, scope, config, severity, sort_order, is_enabled)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+                [
+                    createdProfile.id,
+                    rule.name,
+                    rule.description,
+                    rule.rule_type,
+                    rule.scope,
+                    JSON.stringify(rule.config),
+                    rule.severity,
+                    rule.sort_order,
+                    rule.is_enabled,
+                ]
+            );
+            createdRules.push(result.rows[0]);
+        }
+
+        logger.info(`Guardrail profile imported from YAML: "${parsedProfile.name}" (${createdRules.length} rules, ${exceptions.length} exceptions)`);
+
+        return {
+            profile: createdProfile,
+            rules: createdRules,
+            exceptions,
+            summary: {
+                profileName: createdProfile.name,
+                rulesCreated: createdRules.length,
+                exceptionsFound: exceptions.length,
+                version: parsedProfile.version,
+            },
+        };
+    }
+
+    /**
+     * Preview/validate a YAML string without saving.
+     * Returns the parsed profile, rules, and any validation issues.
+     */
+    async previewYaml(yamlString) {
+        const validation = yamlParser.validate(yamlString);
+
+        if (!validation.valid) {
+            return {
+                valid: false,
+                errors: validation.errors,
+                profile: null,
+                rules: [],
+                exceptions: [],
+            };
+        }
+
+        const { profile, rules, exceptions } = yamlParser.parseGuardrail(yamlString);
+
+        // Check if a profile with this name already exists
+        const existing = await db.query(
+            'SELECT id, name FROM guardrail_profiles WHERE LOWER(name) = LOWER($1)',
+            [profile.name]
+        );
+        const nameConflict = existing.rows.length > 0;
+
+        return {
+            valid: true,
+            errors: [],
+            nameConflict,
+            existingProfileId: nameConflict ? existing.rows[0].id : null,
+            profile,
+            rules: rules.map(r => ({
+                name: r.name,
+                type: r.rule_type,
+                scope: r.scope,
+                severity: r.severity,
+                enabled: r.is_enabled,
+                configKeys: Object.keys(r.config),
+            })),
+            exceptions,
+            summary: {
+                profileName: profile.name,
+                version: profile.version,
+                mode: profile.mode,
+                ruleCount: rules.length,
+                exceptionCount: exceptions.length,
+            },
+        };
     }
 }
 
