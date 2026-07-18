@@ -1,5 +1,24 @@
 require('dotenv').config();
 
+// Parse DATABASE_URL if provided (e.g. postgresql://user:pass@host:port/dbname)
+function parseDatabaseUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: parseInt(parsed.port || '5432', 10),
+      database: parsed.pathname.replace('/', ''),
+      user: decodeURIComponent(parsed.username),
+      password: decodeURIComponent(parsed.password),
+      ssl: parsed.searchParams.get('sslmode') === 'require' || parsed.searchParams.get('ssl') === 'true',
+    };
+  } catch {
+    return null;
+  }
+}
+
+const dbFromUrl = process.env.DATABASE_URL ? parseDatabaseUrl(process.env.DATABASE_URL) : null;
+
 const config = {
   server: {
     port: parseInt(process.env.PORT || '3000', 10),
@@ -8,16 +27,17 @@ const config = {
   },
 
   db: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    database: process.env.DB_NAME || 'agentshield',
-    user: process.env.DB_USER || 'agentshield',
-    password: process.env.DB_PASSWORD || 'agentshield_secret',
-    ssl: process.env.DB_SSL === 'true',
+    host: dbFromUrl?.host || process.env.DB_HOST || 'localhost',
+    port: dbFromUrl?.port || parseInt(process.env.DB_PORT || '5432', 10),
+    database: dbFromUrl?.database || process.env.DB_NAME || 'agentshield',
+    user: dbFromUrl?.user || process.env.DB_USER || 'agentshield',
+    password: dbFromUrl?.password || process.env.DB_PASSWORD || 'agentshield_secret',
+    ssl: dbFromUrl?.ssl || process.env.DB_SSL === 'true',
     max: parseInt(process.env.DB_POOL_SIZE || '20', 10),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   },
+
 
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
