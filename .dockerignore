@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Environment files (NEVER deploy secrets)
+.env
+.env.*
+deploy/*/config.env
+
+# Development
+.git/
+.gitignore
+.github/
+
+# Tests
+tests/
+testing/
+*.test.js
+jest.config.js
+coverage/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Dashboard (separate deploy)
+agentshield-dashboard/
+
+# Docker compose (not needed in Cloud Run)
+docker-compose.yaml
+docker-compose*.yaml
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.log
+tmp/
